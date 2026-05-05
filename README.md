@@ -6,6 +6,8 @@ Rekindle is an MCP memory server that solves **session orientation**, not just s
 
 **Status:** v0.1.0, working and tested. Not yet published to npm. Install from source (see below).
 
+![Rekindle init demo](docs/demo.gif)
+
 ## What's Built, What's Tested, What's Next
 
 **Implemented and tested** (v0.1.0 — this release):
