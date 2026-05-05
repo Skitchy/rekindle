@@ -17,7 +17,7 @@ Rekindle is an MCP memory server that solves **session orientation**, not just s
 - Boot report with identity loading, memory stats, checkpoint retrieval, transcript reading
 - Structural gap detection (missing identity, empty categories, stale data, absent transcripts)
 - Category and project scoping across all operations
-- Init scaffold (`npx rekindle init`) with identity template and directory setup
+- Init scaffold with identity template and directory setup
 - Session capture hooks (stdlib Python, zero dependencies)
 - 37 automated tests (unit + integration + performance benchmark)
 
@@ -223,6 +223,7 @@ Optional hooks extract session transcripts at session end. The next session read
 - **Transcript capture is optional.** The hooks are not installed by default. You configure them explicitly.
 - **SQLite database is a regular file.** It has the same file permissions as any other file in your project. It is not encrypted. If you need encryption, use OS-level disk encryption.
 - **Add `.rekindle/` to `.gitignore`.** The init command does this automatically if a `.gitignore` exists. Your memories and transcripts should not be committed to version control.
+- **boot_report reads local files.** In v0.1, `boot_report` reads from whatever `identity_path` and `transcript_dir` are passed in the tool call. Paths are not sandboxed. Only use Rekindle with MCP clients and prompts you trust. Path restriction is planned for v0.2.
 
 ## Session Hooks
 
@@ -300,7 +301,7 @@ rekindle/
     pre-compact-capture.py   Pre-compaction context preservation
 ```
 
-**Storage:** SQLite with FTS5 full-text search via `better-sqlite3`. Search uses BM25 ranking boosted by importance score. Zero external dependencies.
+**Storage:** SQLite with FTS5 full-text search via `better-sqlite3`. Search uses BM25 ranking boosted by importance score. No external services required.
 
 **Transport:** stdio (standard MCP transport). Works with Claude Code out of the box.
 
