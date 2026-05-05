@@ -27,13 +27,14 @@ Rekindle is an MCP memory server that solves **session orientation**, not just s
 - Retrieval tracking (the infrastructure exists; we haven't built analysis tooling around it yet)
 
 **On the roadmap** (not in this release):
-- Semantic search via embeddings (v0.2 — currently FTS5 keyword search only)
-- Memory consolidation and decay (v0.2 — merge similar memories, age out stale ones)
-- Absence signaling (v0.2 — detect when a query enters territory with no stored memories)
-- Cross-device sync (v0.2 — cloud storage adapter)
+- Orientation as a first-class domain layer with structured JSON output (v0.2)
+- Orientation scoring — transparent weighted checklist (v0.2)
+- End-session tool for closing the continuity loop (v0.2)
+- Typed continuity records: checkpoint, decision, open_loop, preference, repair (v0.2)
+- Path security — restrict boot_report file access (v0.2)
+- Semantic search via embeddings (v0.2)
 - Spreading activation / multi-hop retrieval (v0.3)
-- Relational reranking (v0.3)
-- Gap analysis tooling for measuring your own orientation quality over time (v0.3)
+- Gap analysis tooling for measuring orientation quality over time (v0.3)
 
 See [docs/roadmap.md](docs/roadmap.md) for details on each planned feature.
 
@@ -222,7 +223,7 @@ Optional hooks extract session transcripts at session end. The next session read
 - **Transcripts contain conversation text.** The session capture hook copies user and assistant messages from Claude Code's session JSONL. Do not enable transcript capture if your sessions contain secrets, credentials, or sensitive information you don't want stored on disk.
 - **Transcript capture is optional.** The hooks are not installed by default. You configure them explicitly.
 - **SQLite database is a regular file.** It has the same file permissions as any other file in your project. It is not encrypted. If you need encryption, use OS-level disk encryption.
-- **Add `.rekindle/` to `.gitignore`.** The init command does this automatically if a `.gitignore` exists. Your memories and transcripts should not be committed to version control.
+- **Add `.rekindle/` to `.gitignore`.** The init command does this automatically (creates `.gitignore` if none exists, or appends to an existing one). Your memories and transcripts should not be committed to version control.
 - **boot_report reads local files.** In v0.1, `boot_report` reads from whatever `identity_path` and `transcript_dir` are passed in the tool call. Paths are not sandboxed. Only use Rekindle with MCP clients and prompts you trust. Path restriction is planned for v0.2.
 
 ## Session Hooks
