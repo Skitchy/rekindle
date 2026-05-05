@@ -60,15 +60,16 @@ export function scaffold(targetDir: string): void {
   console.log("=".repeat(60) + "\n");
   console.log(bootInstructions);
 
-  // Print MCP config
+  // Print MCP config — use node + absolute path since package isn't published yet
+  const serverEntry = join(__dirname, "..", "index.js");
   console.log("=".repeat(60));
   console.log("Add to your Claude Code MCP config (~/.claude.json):");
   console.log("=".repeat(60) + "\n");
   console.log(JSON.stringify({
     mcpServers: {
       rekindle: {
-        command: "npx",
-        args: ["-y", "rekindle"],
+        command: "node",
+        args: [serverEntry],
         env: {
           REKINDLE_DB_PATH: join(rekindleDir, "db", "memories.db"),
         },
