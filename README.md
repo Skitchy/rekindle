@@ -306,18 +306,11 @@ rekindle/
 
 ## Roadmap
 
-### v0.2: "It finds connections"
-- Cloud storage adapter (Supabase + embeddings for semantic search)
-- Cross-device sync
-- Ambient retrieval with absence signaling (reports when a query enters new territory)
-- Session registry with procedural scripts (if-then relational rules)
-- Memory consolidation (merge similar, decay stale)
+### v0.2: "It knows where it stands"
+Orientation becomes the architecture, not just a feature. The core refactor: extract orientation into a first-class domain layer with structured output, orientation scoring, session tracking, richer memory metadata (`source`, `session_id`, `expires_at`), config file, path security, and cloud storage with semantic search.
 
 ### v0.3: "It thinks in networks"
-- Spreading activation (multi-hop memory retrieval)
-- Relational reranking (cross-memory attention at retrieval time)
-- Boot prep routine (pre-search based on recent activity)
-- Gap analysis tooling (measure your own AI's orientation quality over time)
+Memory as a network, not a list. Spreading activation, relational reranking, boot prep routine, gap analysis tooling, eval harness, and maintenance tools.
 
 ## License
 
