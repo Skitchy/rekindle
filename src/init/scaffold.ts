@@ -43,7 +43,7 @@ export function scaffold(targetDir: string): void {
   writeFileSync(join(rekindleDir, "identity.md"), identityTemplate);
   console.log("Created identity template: .rekindle/identity.md");
 
-  // Add .rekindle/ to .gitignore if one exists
+  // Add .rekindle/ to .gitignore
   const gitignorePath = join(targetDir, ".gitignore");
   if (existsSync(gitignorePath)) {
     const existing = readFileSync(gitignorePath, "utf-8");
@@ -51,6 +51,9 @@ export function scaffold(targetDir: string): void {
       appendFileSync(gitignorePath, "\n# Rekindle (local AI memory)\n.rekindle/\n");
       console.log("Added .rekindle/ to .gitignore");
     }
+  } else {
+    writeFileSync(gitignorePath, "# Rekindle (local AI memory)\n.rekindle/\n");
+    console.log("Created .gitignore with .rekindle/");
   }
 
   // Print boot instructions

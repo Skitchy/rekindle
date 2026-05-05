@@ -1,0 +1,58 @@
+name: Installation Help
+description: Get help with installing or configuring Rekindle
+title: "[Install] "
+labels: ["installation", "help"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Having trouble getting Rekindle installed? We'll help you sort it out.
+
+  - type: textarea
+    id: what-step-failed
+    attributes:
+      label: What step failed?
+      description: Which part of the installation or configuration process didn't work?
+    validations:
+      required: true
+
+  - type: textarea
+    id: command-run
+    attributes:
+      label: What command did you run?
+      description: The exact command you ran that failed.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: error-output
+    attributes:
+      label: What was the error output?
+      description: Paste the full error output here.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Your system details.
+      value: |
+        - OS:
+        - Node version:
+        - npm version:
+    validations:
+      required: true
+
+  - type: dropdown
+    id: clean-install
+    attributes:
+      label: Have you tried a clean install?
+      description: "Have you tried: npm ci or rm -rf node_modules && npm install?"
+      options:
+        - "Yes"
+        - "No"
+    validations:
+      required: true

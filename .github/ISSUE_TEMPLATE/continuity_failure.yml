@@ -1,0 +1,93 @@
+name: Continuity Failure Report
+description: Report when Rekindle failed to preserve continuity across sessions
+title: "[Continuity] "
+labels: ["continuity-failure", "research-data"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting this. Continuity failures are the most valuable data for improving Rekindle. Please be as specific as possible about what was lost.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the situation where continuity broke down.
+      placeholder: "e.g., Started a new session and the assistant had no memory of the refactor we spent 2 hours on yesterday."
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-should-have-carried
+    attributes:
+      label: What should Rekindle have carried forward?
+      description: What context, state, or knowledge should have persisted into the new session?
+      placeholder: "e.g., The assistant should have known we renamed the auth module and moved it to src/lib/auth/."
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-assistant-missed
+    attributes:
+      label: What did the assistant miss?
+      description: What specific things did the assistant fail to recall or act on?
+      placeholder: "e.g., It re-suggested the old file structure we already migrated away from."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: transcript-available
+    attributes:
+      label: Was there a transcript available?
+      description: Was a transcript from the previous session available for Rekindle to process?
+      options:
+        - "Yes"
+        - "No"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: checkpoint-stored
+    attributes:
+      label: Was there a stored checkpoint?
+      description: Did Rekindle store a session checkpoint at the end of the previous session?
+      options:
+        - "Yes"
+        - "No"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: failure-type
+    attributes:
+      label: Type of continuity failure
+      description: What category best describes what was lost?
+      options:
+        - "Informational (facts, decisions, technical details)"
+        - "Project state (what was done, what's next, current status)"
+        - "Relational (tone, preferences, relationship context)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: boot-report
+    attributes:
+      label: Any relevant boot_report output?
+      description: If you have output from the boot sequence or diagnostics, paste it here.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Your system details.
+      value: |
+        - OS:
+        - Node version:
+        - Claude Code version:
+    validations:
+      required: true
