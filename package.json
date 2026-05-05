@@ -1,0 +1,52 @@
+{
+  "name": "rekindle",
+  "version": "0.1.0",
+  "description": "Your AI forgets everything between sessions. Rekindle fixes that.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "rekindle": "./dist/init/cli.js"
+  },
+  "scripts": {
+    "build": "tsc && cp -r src/init/templates dist/init/templates",
+    "dev": "tsx watch src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "start": "node dist/index.js"
+  },
+  "keywords": [
+    "mcp",
+    "memory",
+    "ai",
+    "claude",
+    "persistence",
+    "orientation"
+  ],
+  "author": "Skitch",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Skitchy/rekindle"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist",
+    "hooks",
+    "LICENSE",
+    "README.md"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "better-sqlite3": "^12.9.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.6.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
+  }
+}
