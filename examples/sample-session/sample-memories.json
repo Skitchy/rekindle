@@ -1,0 +1,86 @@
+[
+  {
+    "content": "Chose tokio over async-std for the ingestion service. Ecosystem support was the deciding factor — hyper, tonic, and most Rust async libraries are tokio-native.",
+    "category": "context",
+    "importance": 7,
+    "project": "ingestion-service"
+  },
+  {
+    "content": "Backpressure implementation uses bounded tokio channel (capacity 1000) between TCP acceptor and worker pool. When channel fills, acceptor blocks on send, TCP backlog absorbs the burst. Load test confirms behavior.",
+    "category": "context",
+    "importance": 8,
+    "project": "ingestion-service"
+  },
+  {
+    "content": "Need Grafana alert on channel utilization >80% sustained for 5 minutes. If Kafka producer has sustained slowdowns (not just bursts), TCP backlog fills and clients get connection refused.",
+    "category": "context",
+    "importance": 6,
+    "project": "ingestion-service"
+  },
+  {
+    "content": "Schema registry integration still pending for the ingestion service. Need to validate message schemas before forwarding to Kafka.",
+    "category": "context",
+    "importance": 6,
+    "project": "ingestion-service"
+  },
+  {
+    "content": "Person prefers integration tests over unit tests for infrastructure code. 'Tests matter, but integration tests over unit tests for infrastructure code.'",
+    "category": "preference",
+    "importance": 7,
+    "project": "ingestion-service"
+  },
+  {
+    "content": "Don't suggest refactoring code that isn't part of the current task. Person is explicit about scope — stay focused on what was asked.",
+    "category": "preference",
+    "importance": 8,
+    "project": null
+  },
+  {
+    "content": "Person prefers explicit code over clever code, readable over compact. When presenting options, lead with the straightforward approach.",
+    "category": "preference",
+    "importance": 7,
+    "project": null
+  },
+  {
+    "content": "When debugging Rust borrow checker issues, start with the simplest hypothesis. Person knows the language is new to them and appreciates direct guidance over exploratory questioning.",
+    "category": "lesson",
+    "importance": 6,
+    "project": "ingestion-service"
+  },
+  {
+    "content": "Bounded channels in tokio: use tokio::sync::mpsc::channel(capacity). Sender.send().await blocks when full. This is the clean way to implement backpressure between pipeline stages.",
+    "category": "lesson",
+    "importance": 7,
+    "project": "ingestion-service"
+  },
+  {
+    "content": "Jenkins to GitHub Actions migration is in progress. 3 of 7 pipelines migrated. Remaining: deploy-staging, deploy-prod, nightly-benchmarks, security-scan.",
+    "category": "context",
+    "importance": 5,
+    "project": "ci-migration"
+  },
+  {
+    "content": "GitHub Actions: use concurrency groups to prevent duplicate deploys. Learned this after two simultaneous staging deploys caused a conflict.",
+    "category": "lesson",
+    "importance": 6,
+    "project": "ci-migration"
+  },
+  {
+    "content": "The nightly benchmark pipeline needs to run on self-hosted runners — GitHub-hosted runners have inconsistent performance characteristics that make benchmark comparisons unreliable.",
+    "category": "lesson",
+    "importance": 5,
+    "project": "ci-migration"
+  },
+  {
+    "content": "Person works evenings (US Pacific) after kids are in bed. Sessions are usually 1-2 hours. Respect the time — be efficient, don't over-explain.",
+    "category": "relationship",
+    "importance": 7,
+    "project": null
+  },
+  {
+    "content": "This collaboration works best when I lead with the answer and add context on request. Person is experienced — they don't need hand-holding, they need a fast partner.",
+    "category": "relationship",
+    "importance": 8,
+    "project": null
+  }
+]

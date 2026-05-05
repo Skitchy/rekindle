@@ -6,6 +6,35 @@ Rekindle is an MCP memory server that solves **session orientation**, not just s
 
 **Status:** v0.1.0, working and tested. Not yet published to npm. Install from source (see below).
 
+## What's Built, What's Tested, What's Next
+
+**Implemented and tested** (v0.1.0 — this release):
+- SQLite storage with FTS5 full-text search and BM25 ranking
+- 6 MCP tools: store, search, list, delete, update, boot_report
+- Importance-weighted search (importance score boosts BM25 rank)
+- Boot report with identity loading, memory stats, checkpoint retrieval, transcript reading
+- Structural gap detection (missing identity, empty categories, stale data, absent transcripts)
+- Category and project scoping across all operations
+- Init scaffold (`npx rekindle init`) with identity template and directory setup
+- Session capture hooks (stdlib Python, zero dependencies)
+- 37 automated tests (unit + integration + performance benchmark)
+
+**Experimental — working but not yet validated at scale:**
+- Orientation quality improvement (the 43-session data shows the problem exists; Rekindle addresses it structurally, but we haven't yet measured improvement over a comparable session count)
+- Gap detection effectiveness (structural checks catch missing categories and stale data; they don't catch *semantically* missing context — that requires the v0.2 work below)
+- Retrieval tracking (the infrastructure exists; we haven't built analysis tooling around it yet)
+
+**On the roadmap** (not in this release):
+- Semantic search via embeddings (v0.2 — currently FTS5 keyword search only)
+- Memory consolidation and decay (v0.2 — merge similar memories, age out stale ones)
+- Absence signaling (v0.2 — detect when a query enters territory with no stored memories)
+- Cross-device sync (v0.2 — cloud storage adapter)
+- Spreading activation / multi-hop retrieval (v0.3)
+- Relational reranking (v0.3)
+- Gap analysis tooling for measuring your own orientation quality over time (v0.3)
+
+See [docs/roadmap.md](docs/roadmap.md) for details on each planned feature.
+
 ## Why not just use CLAUDE.md or a memory file?
 
 A static file is passive. Your AI reads it, but it can't search it, rank it, track what's been retrieved, or tell you what's missing. Rekindle adds:
@@ -80,6 +109,8 @@ When context is sparse, the gaps section flags what's missing:
 ```
 
 The AI sees this before any work begins and reports: "Carrying forward: [what I loaded, what might be missing]."
+
+See [examples/sample-session/](examples/sample-session/) for a complete example: filled-in identity document, sample memories, a session transcript, and both healthy and sparse boot reports.
 
 ## Install from Source
 
