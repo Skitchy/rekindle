@@ -12,8 +12,6 @@ Rekindle is an MCP memory server that solves **session orientation**, not just s
 npx rekindle init
 ```
 
-> **Windows users:** Rekindle uses `better-sqlite3`, a native C++ module that must be compiled during install. On Windows, run from **WSL2** (Ubuntu) instead of PowerShell or cmd. PowerShell installs will fail unless you have Visual Studio Build Tools with the C++ workload installed.
-
 This creates `.rekindle/` in your current directory with a SQLite database, identity template, and transcript directory. It prints two blocks to copy:
 
 1. **MCP config** — paste into `~/.claude.json` (tells Claude Code where the server is)
@@ -231,7 +229,7 @@ Both hooks are configurable via environment variables:
 |-------------|--------|
 | Claude Code (macOS) | Supported, tested |
 | Claude Code (Linux/WSL2) | Supported, tested |
-| Claude Code (Windows native) | Requires Visual Studio Build Tools (C++ workload) or use WSL2 |
+| Claude Code (Windows) | Supported, tested (Node.js required, prebuilt binaries install automatically) |
 | Claude Desktop | Untested (uses same MCP protocol) |
 | Cursor, Continue, Cline | Untested (should work if they support MCP stdio) |
 | Other MCP clients | Untested |
