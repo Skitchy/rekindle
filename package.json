@@ -8,7 +8,7 @@
     "rekindle": "dist/init/cli.js"
   },
   "scripts": {
-    "build": "tsc && rm -rf dist/init/templates && cp -r src/init/templates dist/init/templates",
+    "build": "tsc && node scripts/copy-templates.js",
     "dev": "tsx watch src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
