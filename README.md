@@ -4,49 +4,24 @@ Your AI forgets everything between sessions. Rekindle fixes that.
 
 Rekindle is an MCP memory server that solves **session orientation**, not just storage. It gives your AI persistent memory, a structured boot sequence, and gap detection that flags what was missed. All local, all SQLite, zero API keys.
 
-**Status:** v0.1.0, working and tested. Not yet published to npm. Install from source (see below).
+**Status:** v0.1.0 pre-release, working and tested. Early testers wanted.
+
+## Quick Start
+
+```bash
+npx rekindle init
+```
+
+This creates `.rekindle/` in your current directory with a SQLite database, identity template, and transcript directory. It prints two blocks to copy:
+
+1. **MCP config** — paste into `~/.claude.json` (tells Claude Code where the server is)
+2. **Boot instructions** — paste into your project's `CLAUDE.md` (tells the AI how to orient)
+
+Then fill in `.rekindle/identity.md` and start a new Claude Code session.
+
+Session 1 stores. Session 2 remembers. Session 10 anticipates.
 
 ![Rekindle init demo](docs/demo.gif)
-
-## What's Built, What's Tested, What's Next
-
-**Implemented and tested** (v0.1.0 — this release):
-- SQLite storage with FTS5 full-text search and BM25 ranking
-- 6 MCP tools: store, search, list, delete, update, boot_report
-- Importance-weighted search (importance score boosts BM25 rank)
-- Boot report with identity loading, memory stats, checkpoint retrieval, transcript reading
-- Structural gap detection (missing identity, empty categories, stale data, absent transcripts)
-- Category and project scoping across all operations
-- Init scaffold with identity template and directory setup
-- Session capture hooks (stdlib Python, zero dependencies)
-- 37 automated tests (unit + integration + performance benchmark)
-
-**Experimental — working but not yet validated at scale:**
-- Orientation quality improvement (the 43-session data shows the problem exists; Rekindle addresses it structurally, but we haven't yet measured improvement over a comparable session count)
-- Gap detection effectiveness (structural checks catch missing categories and stale data; they don't catch *semantically* missing context — that requires the v0.2 work below)
-- Retrieval tracking (the infrastructure exists; we haven't built analysis tooling around it yet)
-
-**On the roadmap** (not in this release):
-- Orientation as a first-class domain layer with structured JSON output (v0.2)
-- Orientation scoring — transparent weighted checklist (v0.2)
-- End-session tool for closing the continuity loop (v0.2)
-- Typed continuity records: checkpoint, decision, open_loop, preference, repair (v0.2)
-- Path security — restrict boot_report file access (v0.2)
-- Semantic search via embeddings (v0.2)
-- Spreading activation / multi-hop retrieval (v0.3)
-- Gap analysis tooling for measuring orientation quality over time (v0.3)
-
-See [docs/roadmap.md](docs/roadmap.md) for details on each planned feature.
-
-## Why not just use CLAUDE.md or a memory file?
-
-A static file is passive. Your AI reads it, but it can't search it, rank it, track what's been retrieved, or tell you what's missing. Rekindle adds:
-
-- Full-text search with importance-weighted ranking
-- Category and project scoping across memories
-- Retrieval tracking (what gets used, what doesn't)
-- An orientation pipeline that loads identity, context, and transcripts at boot
-- Gap detection that reports empty categories, stale data, and missing context
 
 ## The Problem (43 Sessions of Data)
 
@@ -115,66 +90,15 @@ The AI sees this before any work begins and reports: "Carrying forward: [what I 
 
 See [examples/sample-session/](examples/sample-session/) for a complete example: filled-in identity document, sample memories, a session transcript, and both healthy and sparse boot reports.
 
-## Install from Source
+## Why not just use CLAUDE.md or a memory file?
 
-```bash
-git clone https://github.com/Skitchy/rekindle.git
-cd rekindle
-npm install
-npm run build
-```
+A static file is passive. Your AI reads it, but it can't search it, rank it, track what's been retrieved, or tell you what's missing. Rekindle adds:
 
-### Initialize a project
-
-```bash
-node dist/init/cli.js init
-```
-
-This creates `.rekindle/` in your current directory with:
-- `db/memories.db` (SQLite database, initialized)
-- `identity.md` (template you fill in)
-- `transcripts/` (for session captures)
-
-### Add the MCP server to Claude Code
-
-Add to `~/.claude.json`:
-
-```json
-{
-  "mcpServers": {
-    "rekindle": {
-      "command": "node",
-      "args": ["/absolute/path/to/rekindle/dist/index.js"],
-      "env": {
-        "REKINDLE_DB_PATH": "/absolute/path/to/.rekindle/db/memories.db"
-      }
-    }
-  }
-}
-```
-
-### Add boot instructions to CLAUDE.md
-
-```markdown
-## Rekindle: Session Orientation
-
-At the start of every session, before any work:
-
-1. Call boot_report with your identity_path and transcript_dir
-2. Read the report: identity status, memory count, last session context, detected gaps
-3. Search memories for terms relevant to today's task
-4. Report: "Carrying forward: [what you loaded, what might be missing]"
-
-At the end of every substantive session:
-1. Store a session checkpoint (category: context, importance: 7, 2-4 sentences)
-2. Review identity.md: update if anything identity-relevant changed
-```
-
-### Fill in your identity document and start
-
-Open `.rekindle/identity.md` and fill in the sections. Start a session.
-
-Session 1 stores. Session 2 remembers. Session 10 anticipates.
+- Full-text search with importance-weighted ranking
+- Category and project scoping across memories
+- Retrieval tracking (what gets used, what doesn't)
+- An orientation pipeline that loads identity, context, and transcripts at boot
+- Gap detection that reports empty categories, stale data, and missing context
 
 ## How It Works
 
@@ -215,6 +139,50 @@ Optional hooks extract session transcripts at session end. The next session read
 | `boot_report` | Orientation report: identity, memory stats, last checkpoint, last transcript, gap detection |
 
 **Categories:** `preference`, `lesson`, `context`, `relationship`, `general`
+
+## What's Built, What's Tested, What's Next
+
+**Implemented and tested** (v0.1.0 — this release):
+- SQLite storage with FTS5 full-text search and BM25 ranking
+- 6 MCP tools: store, search, list, delete, update, boot_report
+- Importance-weighted search (importance score boosts BM25 rank)
+- Boot report with identity loading, memory stats, checkpoint retrieval, transcript reading
+- Structural gap detection (missing identity, empty categories, stale data, absent transcripts)
+- Category and project scoping across all operations
+- Init scaffold with identity template and directory setup
+- Session capture hooks (stdlib Python, zero dependencies)
+- 37 automated tests (unit + integration + performance benchmark)
+
+**Experimental — working but not yet validated at scale:**
+- Orientation quality improvement (the 43-session data shows the problem exists; Rekindle addresses it structurally, but we haven't yet measured improvement over a comparable session count)
+- Gap detection effectiveness (structural checks catch missing categories and stale data; they don't catch *semantically* missing context — that requires the v0.2 work below)
+- Retrieval tracking (the infrastructure exists; we haven't built analysis tooling around it yet)
+
+**On the roadmap** (not in this release):
+- Orientation as a first-class domain layer with structured JSON output (v0.2)
+- Orientation scoring — transparent weighted checklist (v0.2)
+- End-session tool for closing the continuity loop (v0.2)
+- Typed continuity records: checkpoint, decision, open_loop, preference, repair (v0.2)
+- Path security — restrict boot_report file access (v0.2)
+- Semantic search via embeddings (v0.2)
+- Spreading activation / multi-hop retrieval (v0.3)
+- Gap analysis tooling for measuring orientation quality over time (v0.3)
+
+See [docs/roadmap.md](docs/roadmap.md) for details on each planned feature.
+
+## Install from Source
+
+If you want to inspect or modify the code:
+
+```bash
+git clone https://github.com/Skitchy/rekindle.git
+cd rekindle
+npm install
+npm run build
+node dist/init/cli.js init
+```
+
+The init command prints the same MCP config and boot instructions as the npm path.
 
 ## Privacy and Security
 

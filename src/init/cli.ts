@@ -15,9 +15,12 @@ if (command === "init") {
   );
 
   scaffold(targetDir);
-} else {
-  console.log("Rekindle: AI relationship persistence\n");
+} else if (command === "help" || command === "--help" || command === "-h") {
+  console.log("Rekindle: AI session continuity\n");
   console.log("Usage:");
-  console.log("  npx rekindle init           Set up Rekindle in current directory");
-  console.log("  npx rekindle init --global  Set up Rekindle in home directory");
+  console.log("  rekindle init           Set up Rekindle in current directory");
+  console.log("  rekindle init --global  Set up Rekindle in home directory");
+  console.log("  rekindle               Start MCP server (used by Claude Code)");
+} else {
+  await import("../index.js");
 }

@@ -1,5 +1,5 @@
 import { mkdirSync, writeFileSync, readFileSync, existsSync, appendFileSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join, dirname, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { RekindleStorage } from "../storage/sqlite.js";
 
@@ -63,22 +63,32 @@ export function scaffold(targetDir: string): void {
   console.log("=".repeat(60) + "\n");
   console.log(bootInstructions);
 
-  // Print MCP config — use node + absolute path since package isn't published yet
-  const serverEntry = join(__dirname, "..", "index.js");
+  const isNpmInstall = __dirname.split(sep).includes("node_modules");
+
+  const mcpConfig = isNpmInstall
+    ? {
+        mcpServers: {
+          rekindle: {
+            command: "npx",
+            args: ["-y", "rekindle"],
+            env: { REKINDLE_DB_PATH: dbPath },
+          },
+        },
+      }
+    : {
+        mcpServers: {
+          rekindle: {
+            command: "node",
+            args: [join(__dirname, "..", "index.js")],
+            env: { REKINDLE_DB_PATH: dbPath },
+          },
+        },
+      };
+
   console.log("=".repeat(60));
   console.log("Add to your Claude Code MCP config (~/.claude.json):");
   console.log("=".repeat(60) + "\n");
-  console.log(JSON.stringify({
-    mcpServers: {
-      rekindle: {
-        command: "node",
-        args: [serverEntry],
-        env: {
-          REKINDLE_DB_PATH: join(rekindleDir, "db", "memories.db"),
-        },
-      },
-    },
-  }, null, 2));
+  console.log(JSON.stringify(mcpConfig, null, 2));
 
   console.log("\n" + "=".repeat(60));
   console.log("Done! Fill in .rekindle/identity.md, then start a new session.");

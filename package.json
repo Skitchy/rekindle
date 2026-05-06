@@ -5,10 +5,10 @@
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
-    "rekindle": "./dist/init/cli.js"
+    "rekindle": "dist/init/cli.js"
   },
   "scripts": {
-    "build": "tsc && cp -r src/init/templates dist/init/templates",
+    "build": "tsc && rm -rf dist/init/templates && cp -r src/init/templates dist/init/templates",
     "dev": "tsx watch src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -26,7 +26,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Skitchy/rekindle"
+    "url": "git+https://github.com/Skitchy/rekindle.git"
   },
   "engines": {
     "node": ">=18"
@@ -34,6 +34,8 @@
   "files": [
     "dist",
     "hooks",
+    "docs",
+    "examples",
     "LICENSE",
     "README.md"
   ],
