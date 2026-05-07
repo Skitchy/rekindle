@@ -1,10 +1,18 @@
 # Rekindle
 
+**For Claude Code users who lose time re-explaining project context every session.**
+
+```bash
+npx rekindle init
+```
+
 Your AI forgets everything between sessions. Rekindle fixes that.
+
+![Rekindle init demo](docs/demo.gif)
 
 Rekindle is an MCP continuity engine that solves **session orientation**, not just storage. It gives your AI persistent memory, a structured boot sequence, gap detection, orientation scoring, and a session-closing ritual that captures what matters. All local, all SQLite, zero API keys.
 
-**Status:** v0.2.0 — orientation domain layer, end_session tool, typed continuity records.
+**Status:** v0.2.0 — orientation domain layer, end_session tool, typed continuity records. [Release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.2.0)
 
 ## Quick Start
 
@@ -20,8 +28,6 @@ This creates `.rekindle/` in your current directory with a SQLite database, iden
 Then fill in `.rekindle/identity.md` and start a new Claude Code session.
 
 Session 1 stores. Session 2 remembers. Session 10 anticipates.
-
-![Rekindle init demo](docs/demo.gif)
 
 ## The Problem (43 Sessions of Data)
 
