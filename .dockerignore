@@ -1,0 +1,8 @@
+node_modules
+dist
+.rekindle
+*.tgz
+Build-notes
+docs/demo.gif
+docs/demo.tape
+.git
