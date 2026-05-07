@@ -26,12 +26,61 @@ Rekindle is an MCP continuity engine that solves **session orientation**, not ju
 
 ## Quick Start
 
-Running `npx rekindle init` creates `.rekindle/` in your project with a SQLite database, identity template, and transcript directory. It prints two blocks to copy:
+```bash
+npx rekindle init
+```
 
-1. **MCP config** — paste into `~/.claude.json` (tells Claude Code where the server is)
-2. **Boot instructions** — paste into your project's `CLAUDE.md` (tells the AI how to orient)
+This creates `.rekindle/` in your project with a SQLite database, identity template, and transcript directory. Then add the MCP server config for your client:
 
-Then fill in `.rekindle/identity.md` and start a new Claude Code session.
+<details open>
+<summary><strong>Claude Code</strong></summary>
+
+Add to `~/.claude.json`:
+```json
+{
+  "mcpServers": {
+    "rekindle": {
+      "command": "npx",
+      "args": ["-y", "rekindle"]
+    }
+  }
+}
+```
+</details>
+
+<details>
+<summary><strong>Claude Desktop</strong></summary>
+
+Add to `claude_desktop_config.json` (macOS: `~/Library/Application Support/Claude/`, Windows: `%APPDATA%\Claude\`):
+```json
+{
+  "mcpServers": {
+    "rekindle": {
+      "command": "npx",
+      "args": ["-y", "rekindle"]
+    }
+  }
+}
+```
+</details>
+
+<details>
+<summary><strong>Cursor</strong></summary>
+
+Add to `.cursor/mcp.json` in your project root:
+```json
+{
+  "mcpServers": {
+    "rekindle": {
+      "command": "npx",
+      "args": ["-y", "rekindle"]
+    }
+  }
+}
+```
+</details>
+
+Then fill in `.rekindle/identity.md` and paste the boot instructions into your project's `CLAUDE.md`.
 
 > Session 1 stores. Session 2 remembers. Session 10 anticipates.
 
@@ -213,18 +262,16 @@ Two optional Python hooks for Claude Code (stdlib only, zero external dependenci
 
 </details>
 
-<details>
-<summary><strong>Compatibility</strong></summary>
+## Compatibility
 
-| Environment | Status |
-|-------------|--------|
-| Claude Code (macOS) | Supported, tested |
-| Claude Code (Linux/WSL2) | Supported, tested |
-| Claude Code (Windows) | Supported, tested |
-| Claude Desktop | Untested (uses same MCP protocol) |
-| Cursor, Continue, Cline | Untested (should work if they support MCP stdio) |
-
-</details>
+| Client | Transport | Status |
+|--------|-----------|--------|
+| Claude Code (macOS) | stdio | Tested |
+| Claude Code (Linux/WSL2) | stdio | Tested |
+| Claude Code (Windows) | stdio | Tested |
+| Claude Desktop | stdio | Compatible (same MCP config format) |
+| Cursor | stdio | Compatible (same MCP config format) |
+| Any MCP stdio client | stdio | Compatible |
 
 <details>
 <summary><strong>Architecture</strong></summary>
