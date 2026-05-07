@@ -43,7 +43,7 @@ export class OrientationRenderer {
 
     if (result.gaps.length > 0) {
       sections.push(
-        `## Gaps Detected\n${result.gaps.map((g) => `- ${g.message}`).join("\n")}`
+        `## Gaps Detected\n${result.gaps.map((g) => `- [${g.severity}] ${g.code}: ${g.message}`).join("\n")}`
       );
     } else {
       sections.push(`## Gaps Detected\nNone. Orientation looks complete.`);
@@ -51,10 +51,10 @@ export class OrientationRenderer {
 
     const scoreLines = result.scoreBreakdown
       .map((item) => {
-        const pts = item.earned
-          ? `+${String(item.points).padStart(2)}`
-          : ` +0`;
-        return `${pts}  ${item.label}`;
+        if (item.earned) {
+          return `+${String(item.points).padStart(2)}  ${item.label}`;
+        }
+        return ` ✗  ${item.label} (${item.points}pts)`;
       })
       .join("\n");
     sections.push(
