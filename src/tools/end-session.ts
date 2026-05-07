@@ -14,46 +14,46 @@ export function registerEndSession(
 ): void {
   server.tool(
     "end_session",
-    "End the current session. Stores a checkpoint, decisions, open loops, preferences, constraints, warnings, and relational delta as structured continuity records. Creates a session record. Call this at the end of every substantive session.",
+    "Capture a structured session handoff. Writes multiple records to the local SQLite database: one checkpoint (required), plus optional decisions, open loops, preferences, constraints, warnings, relational delta, and next session focus. Each record is stored with a typed 'type' column (not content prefixes) and linked to a session record via session_id. Also creates a session row in the sessions table with a summary, orientation score, and gap count. The checkpoint is retrievable by boot_report on the next session start. All records are searchable via search_memory and list_memories. Call this at the end of every substantive session to ensure the next session can pick up the thread.",
     {
       checkpoint: z
         .string()
-        .describe("Where we left off — the single most important handoff artifact"),
+        .describe("Where we left off — the single most important handoff artifact. Stored as type='checkpoint' with importance 8. This is what boot_report loads as the latest checkpoint on the next session start."),
       decisions: z
         .array(z.string())
         .optional()
-        .describe("What was decided and why"),
+        .describe("Key decisions made this session and their rationale. Each entry is stored as a separate memory with type='decision' and importance 7."),
       open_loops: z
         .array(z.string())
         .optional()
-        .describe("Unresolved questions or tasks"),
+        .describe("Unresolved questions, pending tasks, or threads that need follow-up. Each entry is stored as type='open_loop' with importance 7."),
       preferences: z
         .array(z.string())
         .optional()
-        .describe("New user preferences learned this session"),
+        .describe("New user preferences or working style observations learned this session. Each entry is stored as type='preference' with importance 6."),
       constraints: z
         .array(z.string())
         .optional()
-        .describe("Boundaries that must not be violated — violating these causes trust damage"),
+        .describe("Boundaries that must not be violated — violating these causes trust damage. Each entry is stored as type='constraint' with importance 9 (highest default)."),
       warnings: z
         .array(z.string())
         .optional()
-        .describe("Things the next session should be careful about"),
+        .describe("Hazards or risks the next session should be aware of. Each entry is stored as type='warning' with importance 8."),
       relational_delta: z
         .string()
         .optional()
         .describe(
-          "What changed in the working relationship this session — trust changes, tension, repair, tone shifts"
+          "What changed in the working relationship this session — trust shifts, tension, repair, tone changes. Stored as type='relational_delta' with importance 8."
         ),
       next_session_focus: z
         .string()
         .optional()
-        .describe("Where to resume next session (vs where we stopped)"),
-      project: z.string().optional().describe("Project scope"),
+        .describe("Where to resume next session, which may differ from where we stopped. Stored as type='next_session_focus' with importance 7."),
+      project: z.string().optional().describe("Project name to scope all records to. Passed through to each stored memory's project field."),
       transcript_path: z
         .string()
         .optional()
-        .describe("Path to session transcript file"),
+        .describe("File path to the session transcript, stored on the session record for reference by boot_report."),
     },
     async ({
       checkpoint,

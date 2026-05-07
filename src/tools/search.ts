@@ -8,20 +8,20 @@ export function registerSearchMemory(
 ): void {
   server.tool(
     "search_memory",
-    "Search memories using full-text search. Returns ranked results with higher-importance memories boosted. Use at session start to load relevant context.",
+    "Search stored memories using SQLite full-text search (FTS5). Returns results ranked by relevance with higher-importance memories boosted. Each search increments the retrieval_count on matched memories, tracking which memories are accessed most. Use at session start to load relevant context, or mid-session to recall specific information. Returns an array of matching memories with id, content, category, importance, project, created_at, and retrieval_count. Returns an empty array if no matches are found.",
     {
-      query: z.string().describe("Search query (keywords or phrases)"),
+      query: z.string().describe("Full-text search query. Supports keywords, phrases, and SQLite FTS5 syntax (e.g., 'database AND migration', '\"exact phrase\"'). Broader queries return more results."),
       category: z
         .enum(["preference", "lesson", "context", "relationship", "general"])
         .optional()
-        .describe("Filter by category"),
-      project: z.string().optional().describe("Filter by project"),
+        .describe("Filter results to a single category. Omit to search across all categories."),
+      project: z.string().optional().describe("Filter results to a specific project. Omit to search across all projects."),
       limit: z
         .number()
         .min(1)
         .max(100)
         .default(10)
-        .describe("Maximum results to return"),
+        .describe("Maximum number of results to return. Default 10. Results are ranked by relevance and importance before truncation."),
     },
     async ({ query, category, project, limit }) => {
       const results = storage.search(query, { category, project, limit });
