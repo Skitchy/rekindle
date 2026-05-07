@@ -35,6 +35,8 @@ Then fill in `.rekindle/identity.md` and start a new Claude Code session.
 
 > Session 1 stores. Session 2 remembers. Session 10 anticipates.
 
+---
+
 ## The Problem (43 Sessions of Data)
 
 Over 43 sessions, we measured what an AI assistant failed to load at session start:
@@ -51,6 +53,8 @@ Existing memory tools (Mem0, Letta, Zep) optimize for retrieval accuracy: can th
 Rekindle solves session orientation: loading identity, recent context, memory health, and missing-context warnings before the assistant starts work.
 
 See [docs/gap-analysis.md](docs/gap-analysis.md) for the full research dataset.
+
+---
 
 ## What It Does
 
@@ -130,6 +134,8 @@ All records stored with `type`, `source`, and `session_id` metadata. Next `boot_
 
 **Categories:** `preference` `lesson` `context` `relationship` `general`
 
+---
+
 ## Why not just CLAUDE.md?
 
 A static file is passive. Your AI reads it, but it can't search it, rank it, track what's been retrieved, or tell you what's missing. Rekindle adds:
@@ -141,6 +147,8 @@ A static file is passive. Your AI reads it, but it can't search it, rank it, tra
 - **Scoring** — transparent checklist so you know *how oriented* the AI is
 - **Session capture** — structured close with checkpoints, decisions, and open loops
 
+---
+
 ## v0.2.0 Highlights
 
 - **7 MCP tools** — added `end_session` for structured session close
@@ -149,6 +157,8 @@ A static file is passive. Your AI reads it, but it can't search it, rank it, tra
 - **Orientation scoring** — 100-point additive checklist across 6 criteria
 - **Structured gaps** — `{ code, severity, message }` with 8 gap codes
 - **64 automated tests** — unit, integration, and performance
+
+---
 
 ## Install from Source
 
