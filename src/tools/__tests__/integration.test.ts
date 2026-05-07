@@ -31,12 +31,13 @@ afterEach(() => {
 });
 
 describe("MCP server integration", () => {
-  it("lists 6 tools", async () => {
+  it("lists 7 tools", async () => {
     const result = await client.listTools();
     const names = result.tools.map((t) => t.name).sort();
     expect(names).toEqual([
       "boot_report",
       "delete_memory",
+      "end_session",
       "list_memories",
       "search_memory",
       "store_memory",
@@ -214,5 +215,117 @@ describe("MCP server integration", () => {
     expect(report).toContain("None found");
     expect(report).toContain("No transcripts found");
     expect(report).toContain("No identity document found");
+  });
+
+  it("boot report includes orientation score", async () => {
+    const bootResult = await client.callTool({
+      name: "boot_report",
+      arguments: {
+        identity_path: join(tmpDir, "nonexistent.md"),
+        transcript_dir: join(tmpDir, "nonexistent"),
+      },
+    });
+
+    const report = (
+      bootResult.content as { type: string; text: string }[]
+    )[0].text;
+
+    expect(report).toContain("## Orientation Score");
+    expect(report).toContain("/100");
+    expect(report).toContain("structural checklist");
+  });
+
+  it("end_session stores checkpoint and returns confirmation", async () => {
+    const result = await client.callTool({
+      name: "end_session",
+      arguments: {
+        checkpoint: "Finished implementing the orientation layer",
+      },
+    });
+
+    const data = JSON.parse(
+      (result.content as { type: string; text: string }[])[0].text
+    );
+
+    expect(data.session_id).toBeDefined();
+    expect(data.stored_count).toBe(1);
+    expect(data.stored.checkpoint).toBe(1);
+    expect(data.message).toContain("Session captured");
+  });
+
+  it("end_session stores full payload", async () => {
+    const result = await client.callTool({
+      name: "end_session",
+      arguments: {
+        checkpoint: "Completed v0.2 architecture",
+        decisions: ["Use type column instead of content prefixes", "Add relational_delta"],
+        open_loops: ["Windows testing", "npm publish"],
+        preferences: ["User prefers single-line commands"],
+        constraints: ["Do not frame as consciousness proof"],
+        warnings: ["Boot report format changed slightly"],
+        relational_delta: "Trust strengthened through collaborative architecture review",
+        next_session_focus: "Write new tests for orientation layer",
+        project: "rekindle",
+      },
+    });
+
+    const data = JSON.parse(
+      (result.content as { type: string; text: string }[])[0].text
+    );
+
+    expect(data.stored_count).toBe(10);
+    expect(data.stored.checkpoint).toBe(1);
+    expect(data.stored.decision).toBe(2);
+    expect(data.stored.open_loop).toBe(2);
+    expect(data.stored.preference).toBe(1);
+    expect(data.stored.constraint).toBe(1);
+    expect(data.stored.warning).toBe(1);
+    expect(data.stored.relational_delta).toBe(1);
+    expect(data.stored.next_session_focus).toBe(1);
+  });
+
+  it("end_session records are retrievable via list", async () => {
+    await client.callTool({
+      name: "end_session",
+      arguments: {
+        checkpoint: "Test checkpoint for retrieval",
+        project: "test-project",
+      },
+    });
+
+    const listResult = await client.callTool({
+      name: "list_memories",
+      arguments: { category: "context", project: "test-project" },
+    });
+
+    const data = JSON.parse(
+      (listResult.content as { type: string; text: string }[])[0].text
+    );
+
+    expect(data.memories.length).toBeGreaterThanOrEqual(1);
+    expect(data.memories.some((m: { content: string }) => m.content === "Test checkpoint for retrieval")).toBe(true);
+  });
+
+  it("end_session checkpoint appears in boot_report", async () => {
+    await client.callTool({
+      name: "end_session",
+      arguments: {
+        checkpoint: "Left off at boot report integration",
+      },
+    });
+
+    const bootResult = await client.callTool({
+      name: "boot_report",
+      arguments: {
+        identity_path: join(tmpDir, "nonexistent.md"),
+        transcript_dir: join(tmpDir, "nonexistent"),
+      },
+    });
+
+    const report = (
+      bootResult.content as { type: string; text: string }[]
+    )[0].text;
+
+    expect(report).toContain("Left off at boot report integration");
   });
 });

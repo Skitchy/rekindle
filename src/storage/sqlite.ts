@@ -9,10 +9,25 @@ export interface Memory {
   category: string;
   importance: number;
   project: string | null;
+  type: string;
+  source: string;
+  session_id: string | null;
   created_at: string;
   updated_at: string;
   retrieval_count: number;
   last_accessed: string | null;
+}
+
+export interface Session {
+  id: string;
+  started_at: string;
+  ended_at: string | null;
+  summary: string | null;
+  transcript_path: string | null;
+  project: string | null;
+  checkpoint_memory_id: string | null;
+  gap_count: number;
+  orientation_score: number | null;
 }
 
 export interface SearchResult extends Memory {
@@ -100,20 +115,54 @@ export class RekindleStorage {
     this.db.pragma("journal_mode = WAL");
     this.db.pragma("foreign_keys = ON");
     this.db.exec(SCHEMA);
+    this.migrateSchema();
+  }
+
+  private migrateSchema(): void {
+    const migrations = [
+      "ALTER TABLE memories ADD COLUMN type TEXT DEFAULT 'memory'",
+      "ALTER TABLE memories ADD COLUMN source TEXT DEFAULT 'manual'",
+      "ALTER TABLE memories ADD COLUMN session_id TEXT",
+      "ALTER TABLE sessions ADD COLUMN project TEXT",
+      "ALTER TABLE sessions ADD COLUMN checkpoint_memory_id TEXT",
+      "ALTER TABLE sessions ADD COLUMN gap_count INTEGER DEFAULT 0",
+      "ALTER TABLE sessions ADD COLUMN orientation_score INTEGER",
+    ];
+
+    for (const sql of migrations) {
+      try {
+        this.db.exec(sql);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (!msg.includes("duplicate column name")) {
+          throw e;
+        }
+      }
+    }
   }
 
   store(
     content: string,
     category: MemoryCategory = "general",
     importance: number = 5,
-    project?: string
+    project?: string,
+    opts?: { type?: string; source?: string; session_id?: string }
   ): string {
     const id = generateId();
     const stmt = this.db.prepare(`
-      INSERT INTO memories (id, content, category, importance, project)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO memories (id, content, category, importance, project, type, source, session_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    stmt.run(id, content, category, Math.max(1, Math.min(10, importance)), project ?? null);
+    stmt.run(
+      id,
+      content,
+      category,
+      Math.max(1, Math.min(10, importance)),
+      project ?? null,
+      opts?.type ?? "memory",
+      opts?.source ?? "manual",
+      opts?.session_id ?? null
+    );
     return id;
   }
 
@@ -167,6 +216,9 @@ export class RekindleStorage {
       category: row.category,
       importance: row.importance,
       project: row.project,
+      type: row.type,
+      source: row.source,
+      session_id: row.session_id,
       created_at: row.created_at,
       updated_at: row.updated_at,
       retrieval_count: row.retrieval_count + 1,
@@ -284,6 +336,63 @@ export class RekindleStorage {
     sql += ` ORDER BY created_at DESC, rowid DESC LIMIT 1`;
 
     const row = this.db.prepare(sql).get(...params) as Memory | undefined;
+    return row ?? null;
+  }
+
+  createSession(data: {
+    summary: string;
+    transcriptPath?: string;
+    project?: string;
+    checkpointMemoryId?: string;
+    gapCount?: number;
+    orientationScore?: number;
+  }): string {
+    const id = generateId();
+    const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+    this.db
+      .prepare(
+        `INSERT INTO sessions (id, started_at, ended_at, summary, transcript_path, project, checkpoint_memory_id, gap_count, orientation_score)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        id,
+        now,
+        now,
+        data.summary,
+        data.transcriptPath ?? null,
+        data.project ?? null,
+        data.checkpointMemoryId ?? null,
+        data.gapCount ?? 0,
+        data.orientationScore ?? null
+      );
+    return id;
+  }
+
+  updateSession(
+    id: string,
+    data: { summary?: string; checkpointMemoryId?: string; gapCount?: number; orientationScore?: number }
+  ): boolean {
+    const existing = this.getSession(id);
+    if (!existing) return false;
+
+    this.db
+      .prepare(
+        `UPDATE sessions SET summary = ?, checkpoint_memory_id = ?, gap_count = ?, orientation_score = ? WHERE id = ?`
+      )
+      .run(
+        data.summary ?? existing.summary,
+        data.checkpointMemoryId ?? existing.checkpoint_memory_id,
+        data.gapCount ?? existing.gap_count,
+        data.orientationScore ?? existing.orientation_score,
+        id
+      );
+    return true;
+  }
+
+  getSession(id: string): Session | null {
+    const row = this.db
+      .prepare(`SELECT * FROM sessions WHERE id = ?`)
+      .get(id) as Session | undefined;
     return row ?? null;
   }
 

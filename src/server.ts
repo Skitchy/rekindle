@@ -8,11 +8,12 @@ import { registerListMemories } from "./tools/list.js";
 import { registerDeleteMemory } from "./tools/delete.js";
 import { registerUpdateMemory } from "./tools/update.js";
 import { registerBootReport } from "./tools/boot-report.js";
+import { registerEndSession } from "./tools/end-session.js";
 
 export function createServer(storage: RekindleStorage): McpServer {
   const server = new McpServer({
     name: "rekindle",
-    version: "0.1.0",
+    version: "0.2.0",
   });
 
   registerStoreMemory(server, storage);
@@ -21,6 +22,7 @@ export function createServer(storage: RekindleStorage): McpServer {
   registerDeleteMemory(server, storage);
   registerUpdateMemory(server, storage);
   registerBootReport(server, storage);
+  registerEndSession(server, storage);
 
   return server;
 }
