@@ -170,8 +170,8 @@ export function registerEndSession(
               stored: counts,
               summary,
               message:
-                "Session captured. Next boot will have checkpoint and open loops.",
-            }),
+                "Session captured. Next boot will load the checkpoint; open loops and other continuity records are stored and searchable.",
+            }, null, 2),
           },
         ],
       };

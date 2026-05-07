@@ -46,7 +46,8 @@ export class OrientationService {
       identityLoaded,
       hasCheckpoint,
       hasTranscript,
-      stats
+      stats,
+      config.project
     );
 
     const preview =

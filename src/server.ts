@@ -1,6 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod";
 import { RekindleStorage } from "./storage/sqlite.js";
 import { registerStoreMemory } from "./tools/store.js";
 import { registerSearchMemory } from "./tools/search.js";

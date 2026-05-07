@@ -2,9 +2,9 @@
 
 Your AI forgets everything between sessions. Rekindle fixes that.
 
-Rekindle is an MCP memory server that solves **session orientation**, not just storage. It gives your AI persistent memory, a structured boot sequence, and gap detection that flags what was missed. All local, all SQLite, zero API keys.
+Rekindle is an MCP continuity engine that solves **session orientation**, not just storage. It gives your AI persistent memory, a structured boot sequence, gap detection, orientation scoring, and a session-closing ritual that captures what matters. All local, all SQLite, zero API keys.
 
-**Status:** v0.1.0 pre-release, working and tested. Early testers wanted.
+**Status:** v0.2.0 — orientation domain layer, end_session tool, typed continuity records.
 
 ## Quick Start
 
@@ -74,21 +74,42 @@ session-2026-05-05-120000.md
 
 ## Gaps Detected
 None. Orientation looks complete.
+
+## Orientation Score
+100/100
+
++20  Identity document loaded
++20  Recent checkpoint exists
++20  Session transcript found
++20  Recent memories exist (last 7 days)
++10  Relationship/preference memories populated
++10  Project-scoped memories found
+
+This score is a structural checklist, not a guarantee that all relevant context was loaded.
 ```
 
 When context is sparse, the gaps section flags what's missing:
 
 ```
 ## Gaps Detected
-- No identity document found. Run 'npx rekindle init' or create .rekindle/identity.md
-- No context memories stored
-- No relationship memories stored
-- No session transcripts found. Configure the session capture hook for richer orientation.
+- [critical] identity_missing: No identity document found
+- [warning] checkpoint_missing: No recent checkpoint
+- [info] transcript_missing: No session transcripts found
+
+## Orientation Score
+20/100
+
+✗  Identity document loaded (20pts)
+✗  Recent checkpoint exists (20pts)
+✗  Session transcript found (20pts)
++20  Recent memories exist (last 7 days)
+✗  Relationship/preference memories populated (10pts)
+✗  Project-scoped memories found (10pts)
 ```
 
 The AI sees this before any work begins and reports: "Carrying forward: [what I loaded, what might be missing]."
 
-See [examples/sample-session/](examples/sample-session/) for a complete example: filled-in identity document, sample memories, a session transcript, and both healthy and sparse boot reports.
+See [examples/sample-session/](examples/sample-session/) for a complete example.
 
 ## Why not just use CLAUDE.md or a memory file?
 
@@ -99,6 +120,8 @@ A static file is passive. Your AI reads it, but it can't search it, rank it, tra
 - Retrieval tracking (what gets used, what doesn't)
 - An orientation pipeline that loads identity, context, and transcripts at boot
 - Gap detection that reports empty categories, stale data, and missing context
+- Orientation scoring with a transparent weighted checklist
+- Session-end capture that stores checkpoints, decisions, open loops, and relational context
 
 ## How It Works
 
@@ -114,18 +137,47 @@ boot_report
   +-- Find latest checkpoint (where did we leave off?)
   +-- Read last transcript (what actually happened?)
   +-- Detect gaps (what am I missing?)
+  +-- Calculate orientation score (how oriented am I?)
   |
   v
-"Carrying forward: [context loaded, gaps identified]"
+"Carrying forward: [context loaded, gaps identified, score: 80/100]"
 ```
 
 ### Gap Detection
 
-The boot report performs structural gap detection: it flags missing identity documents, empty memory categories, stale data (nothing stored in 7+ days), absent checkpoints, and missing transcripts. This is not semantic understanding of what was missed. It is a systematic check that the AI's context is healthy before work begins.
+Structured gap detection with severity levels and codes:
+
+| Code | Severity | Description |
+|------|----------|-------------|
+| `identity_missing` | critical | No identity document found |
+| `memories_empty` | warning | No memories stored at all |
+| `checkpoint_missing` | warning | No recent checkpoint found |
+| `recent_memory_stale` | warning | No memories in the last 7 days |
+| `category_empty_*` | info | A memory category has no entries |
+| `transcript_missing` | info | No session transcripts found |
 
 ### Session Capture
 
-Optional hooks extract session transcripts at session end. The next session reads the raw conversation, not a compressed summary. Raw transcripts preserve tone, context shifts, and conversational detail that summaries lose.
+`end_session` closes the continuity loop at session end:
+
+```
+end_session
+  |
+  +-- checkpoint: where we left off (required)
+  +-- decisions: what was decided and why
+  +-- open_loops: unresolved tasks or questions
+  +-- preferences: new user preferences learned
+  +-- constraints: boundaries that must not be violated
+  +-- warnings: things next session should watch for
+  +-- relational_delta: what changed in the working relationship
+  +-- next_session_focus: where to resume
+  |
+  v
+All records stored with type, source, and session_id metadata.
+Next boot_report loads the checkpoint automatically.
+```
+
+Optional hooks also extract session transcripts at session end. The next session reads the raw conversation, not a compressed summary.
 
 ## MCP Tools
 
@@ -136,35 +188,39 @@ Optional hooks extract session transcripts at session end. The next session read
 | `list_memories` | List stored memories, newest first. Filter by category or project |
 | `delete_memory` | Delete a memory by ID |
 | `update_memory` | Update content, category, or importance of an existing memory |
-| `boot_report` | Orientation report: identity, memory stats, last checkpoint, last transcript, gap detection |
+| `boot_report` | Orientation report: identity, memory stats, checkpoint, transcript, gaps, orientation score |
+| `end_session` | Structured session close: checkpoint, decisions, open loops, constraints, relational delta |
 
 **Categories:** `preference`, `lesson`, `context`, `relationship`, `general`
 
+**Memory types** (set automatically by `end_session`): `memory`, `checkpoint`, `decision`, `open_loop`, `preference`, `constraint`, `warning`, `relational_delta`, `next_session_focus`
+
 ## What's Built, What's Tested, What's Next
 
-**Implemented and tested** (v0.1.0 — this release):
+**Implemented and tested** (v0.2.0 — this release):
 - SQLite storage with FTS5 full-text search and BM25 ranking
-- 6 MCP tools: store, search, list, delete, update, boot_report
+- 7 MCP tools: store, search, list, delete, update, boot_report, end_session
+- Orientation domain layer with structured types, gap detection, and scoring
+- Typed continuity records with `type`, `source`, and `session_id` metadata
+- Session tracking with checkpoint linkage
+- Orientation scoring — transparent additive checklist (100 points across 6 criteria)
+- Structured gap detection with severity levels and codes
 - Importance-weighted search (importance score boosts BM25 rank)
 - Boot report with identity loading, memory stats, checkpoint retrieval, transcript reading
-- Structural gap detection (missing identity, empty categories, stale data, absent transcripts)
 - Category and project scoping across all operations
 - Init scaffold with identity template and directory setup
 - Session capture hooks (stdlib Python, zero dependencies)
-- 37 automated tests (unit + integration + performance benchmark)
+- 64 automated tests (unit + integration + performance benchmark)
 
 **Experimental — working but not yet validated at scale:**
 - Orientation quality improvement (the 43-session data shows the problem exists; Rekindle addresses it structurally, but we haven't yet measured improvement over a comparable session count)
-- Gap detection effectiveness (structural checks catch missing categories and stale data; they don't catch *semantically* missing context — that requires the v0.2 work below)
+- Gap detection effectiveness (structural checks catch missing categories and stale data; they don't catch *semantically* missing context)
 - Retrieval tracking (the infrastructure exists; we haven't built analysis tooling around it yet)
 
 **On the roadmap** (not in this release):
-- Orientation as a first-class domain layer with structured JSON output (v0.2)
-- Orientation scoring — transparent weighted checklist (v0.2)
-- End-session tool for closing the continuity loop (v0.2)
-- Typed continuity records: checkpoint, decision, open_loop, preference, repair (v0.2)
-- Path security — restrict boot_report file access (v0.2)
-- Semantic search via embeddings (v0.2)
+- Path security — restrict boot_report file access (v0.3)
+- Semantic search via embeddings (v0.3)
+- Open loops surfaced in boot report (v0.3)
 - Spreading activation / multi-hop retrieval (v0.3)
 - Gap analysis tooling for measuring orientation quality over time (v0.3)
 
@@ -192,7 +248,7 @@ The init command prints the same MCP config and boot instructions as the npm pat
 - **Transcript capture is optional.** The hooks are not installed by default. You configure them explicitly.
 - **SQLite database is a regular file.** It has the same file permissions as any other file in your project. It is not encrypted. If you need encryption, use OS-level disk encryption.
 - **Add `.rekindle/` to `.gitignore`.** The init command does this automatically (creates `.gitignore` if none exists, or appends to an existing one). Your memories and transcripts should not be committed to version control.
-- **boot_report reads local files.** In v0.1, `boot_report` reads from whatever `identity_path` and `transcript_dir` are passed in the tool call. Paths are not sandboxed. Only use Rekindle with MCP clients and prompts you trust. Path restriction is planned for v0.2.
+- **boot_report reads local files.** `boot_report` reads from whatever `identity_path` and `transcript_dir` are passed in the tool call. Paths are not sandboxed. Only use Rekindle with MCP clients and prompts you trust.
 
 ## Session Hooks
 
@@ -240,9 +296,10 @@ Both hooks are configurable via environment variables:
 npm test
 ```
 
-37 tests covering:
-- SQLite storage: CRUD operations, FTS5 search ranking, importance boosting, category/project filtering
-- MCP integration: all 6 tools via in-memory transport, boot report with identity/transcripts/gaps
+64 tests covering:
+- SQLite storage: CRUD operations, FTS5 search ranking, importance boosting, category/project filtering, schema migration, session management
+- Orientation domain: gap detection (8 tests), scoring (7 tests), service orchestration (4 tests), rendering (3 tests)
+- MCP integration: all 7 tools via in-memory transport, boot report with identity/transcripts/gaps/scoring, end_session round-trip
 - Performance: 1000-memory search under 100ms
 
 ## Architecture
@@ -253,14 +310,22 @@ rekindle/
     index.ts          MCP server entry point
     server.ts         Server setup, tool registration
     storage/
-      sqlite.ts       SQLite + FTS5 storage adapter
+      sqlite.ts       SQLite + FTS5 storage, schema migration, session management
+    orientation/
+      types.ts        OrientationResult, Gap, ScoreItem interfaces
+      GapDetector.ts   Structural gap detection (8 gap codes)
+      Scorer.ts        Orientation scoring (6 criteria, 100 points)
+      OrientationService.ts   Orchestrator: identity → stats → checkpoint → gaps → score
+      OrientationRenderer.ts  Markdown and JSON output formatters
+      index.ts         Barrel exports
     tools/
       store.ts        store_memory
       search.ts       search_memory (FTS5 full-text)
       list.ts         list_memories
       delete.ts       delete_memory
       update.ts       update_memory
-      boot-report.ts  boot_report (orientation + gap detection)
+      boot-report.ts  boot_report (thin wrapper over OrientationService)
+      end-session.ts  end_session (structured session close)
     init/
       cli.ts          CLI entry point
       scaffold.ts     Directory and database scaffolding
@@ -270,17 +335,14 @@ rekindle/
     pre-compact-capture.py   Pre-compaction context preservation
 ```
 
-**Storage:** SQLite with FTS5 full-text search via `better-sqlite3`. Search uses BM25 ranking boosted by importance score. No external services required.
+**Storage:** SQLite with FTS5 full-text search via `better-sqlite3`. Search uses BM25 ranking boosted by importance score. Typed memory records with `type`, `source`, and `session_id` metadata. No external services required.
 
 **Transport:** stdio (standard MCP transport). Works with Claude Code out of the box.
 
 ## Roadmap
 
-### v0.2: "It knows where it stands"
-Orientation becomes the architecture, not just a feature. The core refactor: extract orientation into a first-class domain layer with structured output, orientation scoring, session tracking, richer memory metadata (`source`, `session_id`, `expires_at`), config file, path security, and cloud storage with semantic search.
-
 ### v0.3: "It thinks in networks"
-Memory as a network, not a list. Spreading activation, relational reranking, boot prep routine, gap analysis tooling, eval harness, and maintenance tools.
+Memory as a network, not a list. Spreading activation, relational reranking, boot prep routine, gap analysis tooling, eval harness, semantic search via embeddings, and open loops surfaced in boot reports.
 
 ## License
 

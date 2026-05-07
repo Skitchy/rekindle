@@ -5,8 +5,13 @@ export function calculateScore(
   hasIdentity: boolean,
   hasCheckpoint: boolean,
   hasTranscript: boolean,
-  stats: MemoryStats
+  stats: MemoryStats,
+  project?: string
 ): ScoreResult {
+  const hasProjectMemories = project
+    ? (stats.byProject[project] ?? 0) > 0
+    : Object.keys(stats.byProject).some((k) => k !== "(none)");
+
   const breakdown = [
     {
       label: "Identity document loaded",
@@ -36,9 +41,11 @@ export function calculateScore(
         (stats.byCategory["preference"] ?? 0) > 0,
     },
     {
-      label: "Project-scoped memories found",
+      label: project
+        ? `Memories found for project "${project}"`
+        : "Project-scoped memories found",
       points: 10,
-      earned: Object.keys(stats.byProject).some((k) => k !== "(none)"),
+      earned: hasProjectMemories,
     },
   ];
 

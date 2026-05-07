@@ -325,7 +325,7 @@ export class RekindleStorage {
   }
 
   getLatestCheckpoint(project?: string): Memory | null {
-    let sql = `SELECT * FROM memories WHERE category = 'context'`;
+    let sql = `SELECT * FROM memories WHERE type = 'checkpoint'`;
     const params: string[] = [];
 
     if (project) {
@@ -335,7 +335,17 @@ export class RekindleStorage {
 
     sql += ` ORDER BY created_at DESC, rowid DESC LIMIT 1`;
 
-    const row = this.db.prepare(sql).get(...params) as Memory | undefined;
+    let row = this.db.prepare(sql).get(...params) as Memory | undefined;
+    if (!row) {
+      let fallback = `SELECT * FROM memories WHERE category = 'context' AND type = 'memory'`;
+      const fbParams: string[] = [];
+      if (project) {
+        fallback += ` AND project = ?`;
+        fbParams.push(project);
+      }
+      fallback += ` ORDER BY created_at DESC, rowid DESC LIMIT 1`;
+      row = this.db.prepare(fallback).get(...fbParams) as Memory | undefined;
+    }
     return row ?? null;
   }
 

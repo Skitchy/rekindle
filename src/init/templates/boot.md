@@ -8,6 +8,15 @@ At the start of every session, before any work:
 4. Report to the user: "Carrying forward: [what you loaded, what might be missing]"
 
 At the end of every substantive session:
-1. Store a session checkpoint using `store_memory` (category: context, importance: 7)
-   Include: what was accomplished, current state, and next steps (2-4 sentences)
+1. Call `end_session` with:
+   - checkpoint: where we left off (required)
+   - decisions: what was decided and why
+   - open_loops: unresolved tasks or questions
+   - preferences: new user preferences learned
+   - constraints: boundaries that must not be violated
+   - warnings: things the next session should be careful about
+   - relational_delta: what changed in the working relationship
+   - next_session_focus: where to resume next session
+   - project: active project scope
+   - transcript_path: path to transcript file, if available
 2. Review identity.md and update if anything identity-relevant changed
