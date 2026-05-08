@@ -34,6 +34,7 @@ if (command === "init") {
   console.log("Usage:");
   console.log("  rekindle init                Set up Rekindle in current directory");
   console.log("  rekindle init --global       Set up Rekindle in home directory");
+  console.log("  rekindle init --with-hooks   Set up Rekindle and configure PreCompact hook");
   console.log("  rekindle setup-hooks         Configure PreCompact hook (standalone)");
   console.log("  rekindle precompact-capture  Capture context before compaction (hook)");
   console.log("  rekindle capture-now         Manually capture current session context");

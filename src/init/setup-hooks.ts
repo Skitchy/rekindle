@@ -51,16 +51,16 @@ export function setupHooks(targetDir: string): void {
     return;
   }
 
-  existing.push({
-    matcher: "*",
-    hooks: [
-      {
-        type: "command",
-        command: hookCommand,
-        timeout: 60,
-      },
-    ],
-  });
+  const rekindleHook: CommandHook = {
+    type: "command",
+    command: hookCommand,
+    timeout: 60,
+  };
+
+  existing.push(
+    { matcher: "auto", hooks: [rekindleHook] },
+    { matcher: "manual", hooks: [{ ...rekindleHook }] },
+  );
   config.hooks.PreCompact = existing;
 
   writeFileSync(settingsPath, JSON.stringify(config, null, 2) + "\n");

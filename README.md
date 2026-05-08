@@ -242,7 +242,17 @@ The `setup-hooks` command writes this to `.claude/settings.local.json`:
   "hooks": {
     "PreCompact": [
       {
-        "matcher": "*",
+        "matcher": "auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx rekindle precompact-capture",
+            "timeout": 60
+          }
+        ]
+      },
+      {
+        "matcher": "manual",
         "hooks": [
           {
             "type": "command",
