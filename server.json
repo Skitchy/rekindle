@@ -1,17 +1,17 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.Skitchy/rekindle",
-  "description": "MCP session continuity engine. Boot reports, orientation scoring, and end-session capture. SQLite.",
+  "description": "MCP session continuity engine. Boot reports, orientation scoring, PreCompact capture, and end-session handoff. SQLite.",
   "repository": {
     "url": "https://github.com/Skitchy/rekindle",
     "source": "github"
   },
-  "version": "0.2.1",
+  "version": "0.3.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "rekindle",
-      "version": "0.2.1",
+      "version": "0.3.0",
       "transport": {
         "type": "stdio"
       }

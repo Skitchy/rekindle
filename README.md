@@ -3,7 +3,7 @@
 # Rekindle
 
 [![npm](https://img.shields.io/npm/v/rekindle)](https://www.npmjs.com/package/rekindle)
-[![tests](https://img.shields.io/badge/tests-64%20passing-brightgreen)](#tests)
+[![tests](https://img.shields.io/badge/tests-101%20passing-brightgreen)](#tests)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 **For Claude Code users who lose time re-explaining project context every session.**
@@ -20,9 +20,9 @@ npx rekindle init
 
 ![Rekindle init demo](docs/demo.gif)
 
-Rekindle is an MCP continuity engine that solves **session orientation**, not just storage. Orient at session start, capture at session end. All local, all SQLite, zero API keys.
+Rekindle is an MCP continuity engine that solves **session orientation**, not just storage. Orient at session start, capture at session end, survive mid-session compaction. All local, all SQLite, zero API keys.
 
-**v0.2.0** — orientation domain layer, `end_session` tool, typed continuity records. [Release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.2.0)
+**v0.3.0 — "Survive the Long Middle"** — PreCompact capture system, open loops, review tracking. [Release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.3.0)
 
 ## Quick Start
 
@@ -30,7 +30,7 @@ Rekindle is an MCP continuity engine that solves **session orientation**, not ju
 npx rekindle init
 ```
 
-This creates `.rekindle/` in your project with a SQLite database, identity template, and transcript directory. Then add the MCP server config for your client:
+This creates `.rekindle/` in your project with a SQLite database, identity template, captures directory, and transcript directory. Then add the MCP server config for your client:
 
 <details open>
 <summary><strong>Claude Code</strong></summary>
@@ -45,6 +45,11 @@ Add to `~/.claude.json`:
     }
   }
 }
+```
+
+Enable PreCompact protection (captures context before mid-session compaction):
+```bash
+npx rekindle setup-hooks
 ```
 </details>
 
@@ -117,42 +122,31 @@ boot_report
   +-- Scan memory stats (what do I know?)
   +-- Find latest checkpoint (where did we leave off?)
   +-- Read last transcript (what actually happened?)
+  +-- Surface open loops (what needs follow-up?)
+  +-- Surface PreCompact captures (what survived compaction?)
   +-- Detect gaps (what am I missing?)
   +-- Calculate orientation score (how oriented am I?)
   --> "Carrying forward: [context loaded, gaps identified, score: 80/100]"
 ```
 
-**Healthy output:**
+### Survive the Long Middle: PreCompact capture (v0.3)
+
+Mid-session compaction destroys reasoning chains, failed approaches, relational texture, and tone. The PreCompact hook fires automatically before compaction and saves what would otherwise be lost:
 
 ```
-## Orientation Score
-100/100
-
-+20  Identity document loaded
-+20  Recent checkpoint exists
-+20  Session transcript found
-+20  Recent memories exist (last 7 days)
-+10  Relationship/preference memories populated
-+10  Project-scoped memories found
+PreCompact hook fires
+  +-- Parse JSONL transcript (last N messages)
+  +-- Write raw Markdown capture (.rekindle/captures/)
+  +-- Write structured JSON snapshot (decisions, open loops, files)
+  +-- Update manifest for cheap listing
+  --> boot_report surfaces captures on next session start
+  --> end_session warns if captures exist but weren't reviewed
 ```
 
-**Sparse output (flags what's missing):**
-
-```
-## Gaps Detected
-- [critical] identity_missing: No identity document found
-- [warning] checkpoint_missing: No recent checkpoint
-
-## Orientation Score
-20/100
-
- ✗  Identity document loaded (20pts)
- ✗  Recent checkpoint exists (20pts)
- ✗  Session transcript found (20pts)
-+20  Recent memories exist (last 7 days)
- ✗  Relationship/preference memories populated (10pts)
- ✗  Project-scoped memories found (10pts)
-```
+Three read modes control token cost:
+- **summary** — one paragraph, cheap
+- **structured** — decisions/loops/warnings, moderate
+- **raw** — full transcript excerpt, expensive (only when needed)
 
 ### Capture: close the loop at session end
 
@@ -180,6 +174,9 @@ All records stored with `type`, `source`, and `session_id` metadata. Next `boot_
 | `list_memories` | Browse memories, newest first. Filter by category or project |
 | `delete_memory` | Delete by ID |
 | `update_memory` | Update content, category, or importance |
+| `list_captures` | List PreCompact captures (optionally filter by session) |
+| `read_capture` | Read a capture in summary, structured, or raw mode |
+| `capture_now` | Manually capture current session context on demand |
 
 **Categories:** `preference` `lesson` `context` `relationship` `general`
 
@@ -195,17 +192,33 @@ A static file is passive. Your AI reads it, but it can't search it, rank it, tra
 - **Gap detection** — flags missing identity, empty categories, stale data
 - **Scoring** — transparent checklist so you know *how oriented* the AI is
 - **Session capture** — structured close with checkpoints, decisions, and open loops
+- **Compaction survival** — PreCompact captures preserve what summaries flatten
 
 ---
 
-## v0.2.0 Highlights
+## v0.3.0 Highlights
 
-- **7 MCP tools** — added `end_session` for structured session close
-- **Orientation domain layer** — `boot_report` is now a thin wrapper; all logic in `OrientationService`, `GapDetector`, `Scorer`
-- **Typed continuity records** — memories carry `type`, `source`, `session_id` instead of content prefixes
-- **Orientation scoring** — 100-point additive checklist across 6 criteria
-- **Structured gaps** — `{ code, severity, message }` with 8 gap codes
-- **64 automated tests** — unit, integration, and performance
+- **10 MCP tools** — added `list_captures`, `read_capture`, `capture_now`
+- **PreCompact capture system** — automatic context preservation before mid-session compaction
+- **Open loops in boot_report** — surfaces unresolved tasks from prior sessions
+- **Review tracking** — captures marked reviewed after `read_capture`; `end_session` warns if unreviewed
+- **Hook setup** — `npx rekindle setup-hooks` configures Claude Code PreCompact hook
+- **Auto-discovery** — `capture_now` discovers session transcript without manual paths
+- **101 automated tests** — unit, integration, capture manager, hook setup
+
+---
+
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `npx rekindle init` | Set up `.rekindle/` in current directory |
+| `npx rekindle init --global` | Set up in home directory |
+| `npx rekindle init --with-hooks` | Init + configure PreCompact hook |
+| `npx rekindle setup-hooks` | Configure PreCompact hook (standalone) |
+| `npx rekindle precompact-capture` | Capture context before compaction (hook) |
+| `npx rekindle capture-now` | Manually capture current session context |
+| `npx rekindle` | Start MCP server (used by Claude Code) |
 
 ---
 
@@ -220,32 +233,36 @@ node dist/init/cli.js init
 ```
 
 <details>
-<summary><strong>Session Hooks</strong></summary>
+<summary><strong>PreCompact Hook Configuration</strong></summary>
 
-Two optional Python hooks for Claude Code (stdlib only, zero external dependencies):
-
-**extract-session.py** (Stop hook): Extracts a Markdown transcript from the session JSONL when a session ends.
-
-**pre-compact-capture.py** (PreCompact hook): Saves the last 80 messages before context compaction.
+The `setup-hooks` command writes this to `.claude/settings.local.json`:
 
 ```json
 {
   "hooks": {
-    "Stop": [{
-      "type": "command",
-      "command": "python3 /path/to/rekindle/hooks/extract-session.py"
-    }]
+    "PreCompact": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx rekindle precompact-capture",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
   }
 }
 ```
 
+The hook receives session context on stdin (session_id, transcript_path, cwd, hook_event_name) and writes captures to `.rekindle/captures/`.
+
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `REKINDLE_TRANSCRIPT_DIR` | `.rekindle/transcripts/` | Where transcripts are saved |
-| `REKINDLE_SESSIONS_DIR` | Auto-detected | Claude Code sessions directory |
-| `REKINDLE_HUMAN_NAME` | `Human` | Name for human messages |
-| `REKINDLE_AI_NAME` | `Assistant` | Name for AI messages |
-| `REKINDLE_TIMEZONE` | `UTC` | Timezone for timestamps |
+| `REKINDLE_PRECOMPACT_MAX_MESSAGES` | `80` | Max messages to capture |
+| `REKINDLE_PRECOMPACT_MAX_CHARS` | `120000` | Max characters to capture |
+| `REKINDLE_BASE_DIR` | Auto-detected | Base directory for `.rekindle/` |
 
 </details>
 
@@ -255,7 +272,7 @@ Two optional Python hooks for Claude Code (stdlib only, zero external dependenci
 - **All data is local.** Nothing is sent to external servers.
 - **No network calls.** The MCP server communicates via stdio. No HTTP, no telemetry, no analytics.
 - **Transcripts contain conversation text.** Do not enable transcript capture if your sessions contain secrets or credentials.
-- **Transcript capture is optional.** The hooks are not installed by default.
+- **Hook installation is opt-in.** `setup-hooks` must be run explicitly (not auto-installed by `init`).
 - **SQLite database is a regular file.** Not encrypted. Use OS-level disk encryption if needed.
 - **`.rekindle/` is gitignored.** The init command handles this automatically.
 - **boot_report reads local files.** Paths are not sandboxed. Only use with MCP clients and prompts you trust.
@@ -280,7 +297,7 @@ Two optional Python hooks for Claude Code (stdlib only, zero external dependenci
 rekindle/
   src/
     index.ts          MCP server entry point
-    server.ts         Server setup, tool registration
+    server.ts         Server setup, tool registration (10 tools)
     storage/
       sqlite.ts       SQLite + FTS5, schema migration, sessions
     orientation/
@@ -289,15 +306,21 @@ rekindle/
       Scorer.ts       Orientation scoring (6 criteria, 100pts)
       OrientationService.ts   Orchestrator
       OrientationRenderer.ts  Markdown + JSON output
+    captures/
+      types.ts        CaptureEntry, StructuredSnapshot, HookInput
+      CaptureManager.ts   Parse, capture, list, read, review tracking
+      discover-transcript.ts  Auto-discover session transcripts
+      precompact-capture.ts   CLI hook entry point
+      capture-now.ts          Manual capture CLI
     tools/
-      boot-report.ts  Thin wrapper over OrientationService
-      end-session.ts  Structured session close
+      boot-report.ts  Orientation + open loops + capture awareness
+      end-session.ts  Structured session close + capture warning
+      list-captures.ts  List PreCompact captures
+      read-capture.ts   Read captures in 3 modes
+      capture-now.ts    Model-triggered manual capture
       store.ts search.ts list.ts delete.ts update.ts
     init/
-      cli.ts scaffold.ts templates/
-  hooks/
-    extract-session.py
-    pre-compact-capture.py
+      cli.ts scaffold.ts setup-hooks.ts templates/
 ```
 
 **Storage:** SQLite + FTS5 via `better-sqlite3`. BM25 ranking boosted by importance. Typed records with `type`, `source`, `session_id`.
@@ -312,11 +335,11 @@ rekindle/
 npm test
 ```
 
-64 tests: storage CRUD + FTS5 ranking, orientation domain (gap detection, scoring, service, rendering), MCP integration (all 7 tools), and performance (1000-memory search under 100ms).
+101 tests: storage CRUD + FTS5 ranking, orientation domain (gap detection, scoring, service, rendering), capture manager (parsing, limits, review tracking, formatting), hook setup (schema, idempotency), and MCP integration (all 10 tools).
 
 ## Roadmap
 
-**v0.3: "It thinks in networks"** — Spreading activation, semantic search via embeddings, open loops in boot reports, gap analysis tooling, eval harness.
+**v0.4: "It thinks in networks"** — Spreading activation, semantic search via embeddings, gap analysis tooling, eval harness.
 
 ## License
 

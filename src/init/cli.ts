@@ -9,6 +9,7 @@ const command = args[0];
 
 if (command === "init") {
   const useGlobal = args.includes("--global");
+  const withHooks = args.includes("--with-hooks");
   const targetDir = useGlobal ? homedir() : process.cwd();
 
   console.log(
@@ -16,6 +17,10 @@ if (command === "init") {
   );
 
   scaffold(targetDir);
+
+  if (withHooks) {
+    setupHooks(targetDir);
+  }
 } else if (command === "setup-hooks") {
   const useGlobal = args.includes("--global");
   const targetDir = useGlobal ? homedir() : process.cwd();

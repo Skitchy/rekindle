@@ -48,8 +48,11 @@ export function registerBootReport(
         }
       }
 
-      const captures = captureManager.listCaptures();
-      const recentCaptures = captures
+      const allCaptures = captureManager.listCaptures();
+      const projectCaptures = project
+        ? allCaptures.filter((c) => c.project === project)
+        : allCaptures;
+      const recentCaptures = projectCaptures
         .sort((a, b) => new Date(b.captured_at).getTime() - new Date(a.captured_at).getTime())
         .slice(0, 5);
 
@@ -57,7 +60,8 @@ export function registerBootReport(
         markdown += "\n\n## PreCompact Captures\n\n";
         markdown += "Context from prior compaction events is available for recovery:\n\n";
         for (const cap of recentCaptures) {
-          markdown += `- **${cap.id}** (${cap.captured_at}, ${cap.message_count} messages, ${cap.source})\n`;
+          const reviewed = cap.reviewed_at ? " ✓ reviewed" : "";
+          markdown += `- **${cap.id}** (${cap.captured_at}, ${cap.message_count} messages, ${cap.source}${reviewed})\n`;
         }
         markdown += "\nCall `list_captures` / `read_capture` to recover pre-compaction context.\n";
       }

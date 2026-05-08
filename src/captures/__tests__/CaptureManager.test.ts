@@ -212,6 +212,18 @@ describe("capture", () => {
     const entry = manager.capture(input);
     expect(entry!.project).toBe("my-project");
   });
+
+  it("passes custom reason to snapshot", () => {
+    const path = writeTranscript([
+      makeTranscriptLine("user", "Hello"),
+      makeTranscriptLine("assistant", "Hi"),
+    ]);
+
+    const entry = manager.capture(makeInput(path), "model_requested", "context feels at risk");
+    const structured = manager.readCapture(entry!.id, "structured");
+    const snapshot = JSON.parse(structured!);
+    expect(snapshot.reason).toBe("context feels at risk");
+  });
 });
 
 describe("applyLimits", () => {
@@ -345,13 +357,36 @@ describe("hasUnreviewedCaptures", () => {
     expect(manager.hasUnreviewedCaptures("any-session")).toBe(false);
   });
 
-  it("returns true when session has captures", () => {
+  it("returns true when session has unreviewed captures", () => {
     const path = writeTranscript([
       makeTranscriptLine("user", "Hello"),
       makeTranscriptLine("assistant", "Hi"),
     ]);
 
     manager.capture(makeInput(path, "my-session"));
+    expect(manager.hasUnreviewedCaptures("my-session")).toBe(true);
+  });
+
+  it("returns false after capture is read", () => {
+    const path = writeTranscript([
+      makeTranscriptLine("user", "Hello"),
+      makeTranscriptLine("assistant", "Hi"),
+    ]);
+
+    const entry = manager.capture(makeInput(path, "my-session"));
+    manager.readCapture(entry!.id, "summary");
+    expect(manager.hasUnreviewedCaptures("my-session")).toBe(false);
+  });
+
+  it("returns true if only some captures are reviewed", () => {
+    const path = writeTranscript([
+      makeTranscriptLine("user", "Hello"),
+      makeTranscriptLine("assistant", "Hi"),
+    ]);
+
+    const entry1 = manager.capture(makeInput(path, "my-session"));
+    manager.capture(makeInput(path, "my-session"));
+    manager.readCapture(entry1!.id, "raw");
     expect(manager.hasUnreviewedCaptures("my-session")).toBe(true);
   });
 

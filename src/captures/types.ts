@@ -12,6 +12,8 @@ export interface CaptureEntry {
   message_count: number;
   char_count: number;
   status: "active" | "superseded" | "archived";
+  reviewed_at?: string;
+  reviewed_mode?: "summary" | "structured" | "raw";
 }
 
 export interface CaptureManifest {
@@ -26,7 +28,7 @@ export interface StructuredSnapshot {
   project: string | null;
   captured_at: string;
   sequence: number;
-  reason: "before_context_compaction" | "manual_capture";
+  reason: string;
   raw_path: string;
   extraction_method: "script_generated" | "model_generated" | "pending";
   confidence: "low" | "medium" | "high";

@@ -1,4 +1,5 @@
 export { CaptureManager } from "./CaptureManager.js";
+export { discoverLatestTranscript } from "./discover-transcript.js";
 export type {
   CaptureEntry,
   CaptureManifest,

@@ -79,7 +79,7 @@ export class CaptureManager {
     return entries;
   }
 
-  capture(input: HookInput, source: CaptureEntry["source"] = "precompact_hook"): CaptureEntry | null {
+  capture(input: HookInput, source: CaptureEntry["source"] = "precompact_hook", reason?: string): CaptureEntry | null {
     const entries = this.parseTranscript(input.transcript_path);
     if (entries.length === 0) return null;
 
@@ -112,7 +112,7 @@ export class CaptureManager {
       project: deriveProject(input.cwd),
       captured_at: now,
       sequence,
-      reason: source === "precompact_hook" ? "before_context_compaction" : "manual_capture",
+      reason: reason ?? (source === "precompact_hook" ? "before_context_compaction" : "manual_capture"),
       raw_path: rawPath,
       extraction_method: "script_generated",
       confidence: "low",
@@ -166,33 +166,40 @@ export class CaptureManager {
     const entry = manifest.captures.find((c) => c.id === id);
     if (!entry) return null;
 
+    let result: string | null = null;
+
     if (mode === "raw") {
       const rawFullPath = resolve(this.baseDir, entry.raw_path);
       if (!existsSync(rawFullPath)) return null;
-      return readFileSync(rawFullPath, "utf-8");
-    }
-
-    if (mode === "structured") {
+      result = readFileSync(rawFullPath, "utf-8");
+    } else if (mode === "structured") {
       const jsonFullPath = resolve(this.baseDir, entry.json_path);
       if (!existsSync(jsonFullPath)) return null;
-      return readFileSync(jsonFullPath, "utf-8");
+      result = readFileSync(jsonFullPath, "utf-8");
+    } else {
+      const jsonFullPath = resolve(this.baseDir, entry.json_path);
+      if (!existsSync(jsonFullPath)) {
+        result = `Capture ${entry.id}: ${entry.message_count} messages captured at ${entry.captured_at}. No structured summary available.`;
+      } else {
+        const snapshot = JSON.parse(readFileSync(jsonFullPath, "utf-8")) as StructuredSnapshot;
+        result = snapshot.summary
+          ? snapshot.summary
+          : `Capture ${entry.id}: ${entry.message_count} messages captured at ${entry.captured_at}. Structured snapshot exists but no summary generated yet (requires_review: true).`;
+      }
     }
 
-    // mode === "summary"
-    const jsonFullPath = resolve(this.baseDir, entry.json_path);
-    if (!existsSync(jsonFullPath)) {
-      return `Capture ${entry.id}: ${entry.message_count} messages captured at ${entry.captured_at}. No structured summary available.`;
+    if (result && !entry.reviewed_at) {
+      entry.reviewed_at = new Date().toISOString();
+      entry.reviewed_mode = mode;
+      this.writeManifest(manifest);
     }
-    const snapshot = JSON.parse(readFileSync(jsonFullPath, "utf-8")) as StructuredSnapshot;
-    if (snapshot.summary) {
-      return snapshot.summary;
-    }
-    return `Capture ${entry.id}: ${entry.message_count} messages captured at ${entry.captured_at}. Structured snapshot exists but no summary generated yet (requires_review: true).`;
+
+    return result;
   }
 
   hasUnreviewedCaptures(sessionId: string): boolean {
     const captures = this.listCaptures(sessionId);
-    return captures.length > 0;
+    return captures.some((c) => !c.reviewed_at);
   }
 
   private applyLimits(entries: TranscriptEntry[]): TranscriptEntry[] {

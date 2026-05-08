@@ -1,17 +1,23 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-interface HookEntry {
+interface CommandHook {
   type: "command";
   command: string;
   timeout?: number;
 }
 
+interface MatcherGroup {
+  matcher: string;
+  hooks: CommandHook[];
+}
+
 interface HooksConfig {
   hooks?: {
-    PreCompact?: HookEntry[];
-    [key: string]: HookEntry[] | undefined;
+    PreCompact?: MatcherGroup[];
+    [key: string]: MatcherGroup[] | undefined;
   };
+  [key: string]: unknown;
 }
 
 export function setupHooks(targetDir: string): void {
@@ -36,8 +42,8 @@ export function setupHooks(targetDir: string): void {
   }
 
   const existing = config.hooks.PreCompact ?? [];
-  const alreadyInstalled = existing.some(
-    (h) => h.type === "command" && h.command.includes("rekindle precompact-capture")
+  const alreadyInstalled = existing.some((group) =>
+    group.hooks?.some((h) => h.command.includes("rekindle precompact-capture"))
   );
 
   if (alreadyInstalled) {
@@ -46,9 +52,14 @@ export function setupHooks(targetDir: string): void {
   }
 
   existing.push({
-    type: "command",
-    command: hookCommand,
-    timeout: 60000,
+    matcher: "*",
+    hooks: [
+      {
+        type: "command",
+        command: hookCommand,
+        timeout: 60,
+      },
+    ],
   });
   config.hooks.PreCompact = existing;
 
