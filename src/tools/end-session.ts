@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { RekindleStorage } from "../storage/sqlite.js";
+import { CaptureManager } from "../captures/index.js";
 
 interface StoredRecord {
   type: string;
@@ -10,7 +11,8 @@ interface StoredRecord {
 
 export function registerEndSession(
   server: McpServer,
-  storage: RekindleStorage
+  storage: RekindleStorage,
+  captureManager: CaptureManager
 ): void {
   server.tool(
     "end_session",
@@ -54,6 +56,10 @@ export function registerEndSession(
         .string()
         .optional()
         .describe("File path to the session transcript, stored on the session record for reference by boot_report."),
+      session_id: z
+        .string()
+        .optional()
+        .describe("Current session ID. Used to check for unreviewed PreCompact captures. If captures exist for this session that were not read via read_capture, a warning is included in the response."),
     },
     async ({
       checkpoint,
@@ -66,6 +72,7 @@ export function registerEndSession(
       next_session_focus,
       project,
       transcript_path,
+      session_id,
     }) => {
       const sessionId = storage.createSession({
         summary: "",
@@ -160,6 +167,12 @@ export function registerEndSession(
         });
       }
 
+      let captureWarning: string | undefined;
+      if (session_id && captureManager.hasUnreviewedCaptures(session_id)) {
+        captureWarning =
+          "WARNING: Unreviewed PreCompact captures exist for this session. Context from before compaction may not be reflected in this checkpoint. Call list_captures and read_capture to review before finalizing.";
+      }
+
       return {
         content: [
           {
@@ -169,8 +182,10 @@ export function registerEndSession(
               stored_count: stored.length,
               stored: counts,
               summary,
-              message:
-                "Session captured. Next boot will load the checkpoint; open loops and other continuity records are stored and searchable.",
+              capture_warning: captureWarning ?? null,
+              message: captureWarning
+                ? "Session captured with warning — unreviewed captures detected."
+                : "Session captured. Next boot will load the checkpoint; open loops and other continuity records are stored and searchable.",
             }, null, 2),
           },
         ],

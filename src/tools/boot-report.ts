@@ -1,17 +1,19 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { RekindleStorage } from "../storage/sqlite.js";
+import { CaptureManager } from "../captures/index.js";
 import { OrientationService, OrientationRenderer } from "../orientation/index.js";
 
 export function registerBootReport(
   server: McpServer,
-  storage: RekindleStorage
+  storage: RekindleStorage,
+  captureManager: CaptureManager
 ): void {
   const orientationService = new OrientationService(storage);
 
   server.tool(
     "boot_report",
-    "Generate a session orientation report. Read-only — does not modify any stored data. Reads the identity document from disk, scans the memory database for statistics and the latest checkpoint, finds the most recent transcript file, detects structural gaps (missing identity, stale memories, no checkpoint, etc.), and calculates a 0-100 orientation score across 6 criteria. Returns a markdown report with: identity contents, latest checkpoint, memory statistics by category and project, detected gaps with severity codes, transcript excerpt, and a scored breakdown. Call this first thing every session to establish context before doing any work.",
+    "Generate a session orientation report. Read-only — does not modify any stored data. Reads the identity document from disk, scans the memory database for statistics and the latest checkpoint, finds the most recent transcript file, detects structural gaps (missing identity, stale memories, no checkpoint, etc.), and calculates a 0-100 orientation score across 6 criteria. Also surfaces open loops from prior sessions and any PreCompact captures that preserve context from compacted sessions. If PreCompact captures exist, call list_captures and read_capture to recover pre-compaction context before proceeding with work. Call this first thing every session to establish context before doing any work.",
     {
       identity_path: z
         .string()
@@ -32,7 +34,33 @@ export function registerBootReport(
         transcriptDir: transcript_dir,
         project,
       });
-      const markdown = OrientationRenderer.toMarkdown(result);
+      let markdown = OrientationRenderer.toMarkdown(result);
+
+      const openLoops = storage.list({ category: "context" })
+        .filter((m) => m.type === "open_loop")
+        .filter((m) => !project || m.project === project)
+        .slice(0, 10);
+
+      if (openLoops.length > 0) {
+        markdown += "\n\n## Open Loops\n\n";
+        for (const loop of openLoops) {
+          markdown += `- ${loop.content}\n`;
+        }
+      }
+
+      const captures = captureManager.listCaptures();
+      const recentCaptures = captures
+        .sort((a, b) => new Date(b.captured_at).getTime() - new Date(a.captured_at).getTime())
+        .slice(0, 5);
+
+      if (recentCaptures.length > 0) {
+        markdown += "\n\n## PreCompact Captures\n\n";
+        markdown += "Context from prior compaction events is available for recovery:\n\n";
+        for (const cap of recentCaptures) {
+          markdown += `- **${cap.id}** (${cap.captured_at}, ${cap.message_count} messages, ${cap.source})\n`;
+        }
+        markdown += "\nCall `list_captures` / `read_capture` to recover pre-compaction context.\n";
+      }
 
       return {
         content: [{ type: "text" as const, text: markdown }],

@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync, readFileSync, existsSync, appendFileSync } fr
 import { join, dirname, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { RekindleStorage } from "../storage/sqlite.js";
+import { setupHooks } from "./setup-hooks.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -89,6 +90,10 @@ export function scaffold(targetDir: string): void {
   console.log("Add to your Claude Code MCP config (~/.claude.json):");
   console.log("=".repeat(60) + "\n");
   console.log(JSON.stringify(mcpConfig, null, 2));
+
+  // Set up PreCompact hook
+  mkdirSync(join(rekindleDir, "captures"), { recursive: true });
+  setupHooks(targetDir);
 
   console.log("\n" + "=".repeat(60));
   console.log("Done! Fill in .rekindle/identity.md, then start a new session.");

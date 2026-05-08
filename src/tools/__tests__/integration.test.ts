@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { RekindleStorage } from "../../storage/sqlite.js";
+import { CaptureManager } from "../../captures/index.js";
 import { createServer } from "../../server.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
@@ -14,8 +15,9 @@ let tmpDir: string;
 beforeEach(async () => {
   tmpDir = mkdtempSync(join(tmpdir(), "rekindle-integration-"));
   storage = new RekindleStorage(join(tmpDir, "db", "memories.db"));
+  const captureManager = new CaptureManager(tmpDir);
 
-  const server = createServer(storage);
+  const server = createServer(storage, captureManager);
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
   client = new Client({ name: "test-client", version: "1.0" });
@@ -31,14 +33,17 @@ afterEach(() => {
 });
 
 describe("MCP server integration", () => {
-  it("lists 7 tools", async () => {
+  it("lists 10 tools", async () => {
     const result = await client.listTools();
     const names = result.tools.map((t) => t.name).sort();
     expect(names).toEqual([
       "boot_report",
+      "capture_now",
       "delete_memory",
       "end_session",
+      "list_captures",
       "list_memories",
+      "read_capture",
       "search_memory",
       "store_memory",
       "update_memory",
