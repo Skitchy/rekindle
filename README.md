@@ -5,6 +5,7 @@
 [![npm](https://img.shields.io/npm/v/rekindle)](https://www.npmjs.com/package/rekindle)
 [![tests](https://img.shields.io/badge/tests-101%20passing-brightgreen)](#tests)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Glama score](https://glama.ai/mcp/servers/Skitchy/rekindle/badges/score.svg)](https://glama.ai/mcp/servers/Skitchy/rekindle)
 
 **For Claude Code users who lose time re-explaining project context every session.**
 
