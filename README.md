@@ -6,6 +6,7 @@
 [![tests](https://img.shields.io/badge/tests-101%20passing-brightgreen)](#tests)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Glama score](https://glama.ai/mcp/servers/Skitchy/rekindle/badges/score.svg)](https://glama.ai/mcp/servers/Skitchy/rekindle)
+[![SafeSkill 95/100](https://img.shields.io/badge/SafeSkill-95%2F100_Verified%20Safe-brightgreen)](https://safeskill.dev/scan/skitchy-rekindle)
 
 **For Claude Code users who lose time re-explaining project context every session.**
 
