@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+<title id="title">Rekindle social card</title>
+<desc id="desc">A dark social card featuring the Rekindle continuity mark and the words Rekindle MCP.</desc>
+
+  <defs>
+    <linearGradient id="fireGrad" x1="0" x2="0.9" y1="0" y2="1">
+      <stop offset="0%" stop-color="#FFD04E"/>
+      <stop offset="32%" stop-color="#FF9C1A"/>
+      <stop offset="72%" stop-color="#FF5A00"/>
+      <stop offset="100%" stop-color="#D41C16"/>
+    </linearGradient>
+    <linearGradient id="fireGrad2" x1="0" x2="0.8" y1="0" y2="1">
+      <stop offset="0%" stop-color="#FFC24D"/>
+      <stop offset="40%" stop-color="#FF7B11"/>
+      <stop offset="100%" stop-color="#E33A00"/>
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0D4761"/>
+      <stop offset="42%" stop-color="#0899BE"/>
+      <stop offset="100%" stop-color="#69F1F2"/>
+    </linearGradient>
+    <linearGradient id="cyanGrad2" x1="0" x2="1" y1="1" y2="0">
+      <stop offset="0%" stop-color="#093444"/>
+      <stop offset="55%" stop-color="#1FA9D0"/>
+      <stop offset="100%" stop-color="#7BF8FF"/>
+    </linearGradient>
+    <linearGradient id="wordGrad" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#FFBC42"/>
+      <stop offset="38%" stop-color="#FF8B1D"/>
+      <stop offset="75%" stop-color="#FF5010"/>
+      <stop offset="100%" stop-color="#D82421"/>
+    </linearGradient>
+    <linearGradient id="mcpGrad" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#2F89A7"/>
+      <stop offset="100%" stop-color="#7FD0DF"/>
+    </linearGradient>
+    <linearGradient id="tagGrad" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#40697D"/>
+      <stop offset="100%" stop-color="#8198A9"/>
+    </linearGradient>
+    <filter id="glowFire" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feColorMatrix in="b" type="matrix" values="1 0 0 0 1  0 1 0 0 0.45  0 0 1 0 0.05  0 0 0 .65 0" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glowCyan" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feColorMatrix in="b" type="matrix" values="1 0 0 0 0.1  0 1 0 0 0.7  0 0 1 0 1  0 0 0 .7 0" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="textGlow" x="-20%" y="-30%" width="140%" height="160%">
+      <feGaussianBlur stdDeviation="2.2" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 1  0 1 0 0 .6  0 0 1 0 .25  0 0 0 .45 0" result="glow"/>
+      <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#000000" flood-opacity=".55"/>
+    </filter>
+    <radialGradient id="bgGlow" cx="22%" cy="38%" r="48%">
+      <stop offset="0%" stop-color="#102329" stop-opacity=".8"/>
+      <stop offset="55%" stop-color="#071118" stop-opacity=".3"/>
+      <stop offset="100%" stop-color="#030609" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+<rect width="1200" height="630" fill="#030609"/>
+<rect width="1200" height="630" fill="url(#bgGlow)"/>
+<g transform="translate(12,85) scale(0.82)">
+<g id="rekindle-mark" transform="translate(10,10)">
+  <g filter="url(#glowFire)">
+    <path d="M118 359 C73 295, 74 225, 100 167 C117 129, 140 98, 155 63 C161 49, 165 35, 167 20 C179 35, 189 55, 193 78 C205 51, 226 27, 246 9 C245 38, 247 69, 260 103 C273 83, 290 66, 313 51 C308 77, 307 101, 315 123 C329 114, 343 97, 357 77 C361 110, 361 142, 352 170 C342 201, 322 229, 293 249 C260 271, 231 304, 217 349 C211 366, 207 383, 205 401 C189 381, 179 360, 171 334 C162 353, 146 372, 127 387 C125 377, 122 368, 118 359 Z" fill="url(#fireGrad)"/>
+    <path d="M176 360 C150 309, 154 254, 176 211 C188 187, 205 166, 217 141 C225 123, 231 107, 234 90 C247 109, 255 131, 258 157 C270 134, 288 115, 308 99 C306 123, 307 149, 316 173 C326 161, 338 146, 352 134 C354 157, 353 179, 346 201 C337 228, 319 249, 294 264 C267 280, 244 302, 228 330 C221 342, 216 357, 214 372 C205 360, 196 348, 188 336 C185 344, 181 352, 176 360 Z" fill="url(#fireGrad2)" opacity=".92"/>
+    <path d="M224 354 C214 315, 225 275, 247 244 C259 228, 273 214, 284 195 C295 177, 303 159, 305 140 C316 159, 321 182, 320 206 C333 189, 347 175, 362 165 C361 185, 357 202, 349 219 C339 241, 321 257, 300 271 C280 285, 261 303, 248 324 C240 335, 232 345, 224 354 Z" fill="#FFB24A" opacity=".22"/>
+  </g>
+  <g filter="url(#glowCyan)">
+    <path d="M414 86 A182 182 0 1 1 291 397" fill="none" stroke="url(#cyanGrad)" stroke-width="38" stroke-linecap="round"/>
+    <polygon points="263,397 314,388 289,438" fill="url(#cyanGrad)"/>
+    <path d="M268 365 A180 180 0 0 1 385 50" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="4" stroke-linecap="round"/>
+    <path d="M223 106 A182 182 0 0 1 346 20" fill="none" stroke="url(#cyanGrad2)" stroke-width="36" stroke-linecap="round" opacity=".95"/>
+    <polygon points="384,20 331,28 357,76" fill="url(#cyanGrad2)"/>
+  </g>
+  <g stroke="#224A57" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity=".95">
+    <path d="M147 255 H208 L245 229 H303"/>
+    <path d="M166 303 H235 L270 276 H337"/>
+    <path d="M185 348 H259 L296 322 H368"/>
+    <path d="M230 190 H273 L307 164 H347"/>
+    <path d="M259 147 H306"/>
+  </g>
+  <g fill="#0B161C" stroke="#3D8DA4" stroke-width="6">
+    <circle cx="133" cy="255" r="12"/>
+    <circle cx="153" cy="303" r="12"/>
+    <circle cx="170" cy="348" r="12"/>
+    <circle cx="216" cy="190" r="12"/>
+    <circle cx="249" cy="147" r="12"/>
+    <circle cx="316" cy="229" r="12"/>
+    <circle cx="350" cy="276" r="12"/>
+    <circle cx="382" cy="322" r="12"/>
+    <circle cx="362" cy="164" r="12"/>
+    <circle cx="322" cy="147" r="12"/>
+  </g>
+</g>
+</g>
+<g id="wordmark" transform="translate(-210,24)">
+  <text x="755" y="280" font-family="Orbitron, Eurostile, Bank Gothic, Montserrat, Arial, sans-serif" font-size="106" font-weight="700" letter-spacing="14" fill="url(#wordGrad)">REKINDLE</text>
+  <line x1="760" y1="362" x2="975" y2="362" stroke="#2C94AF" stroke-width="4" opacity=".85"/>
+  <text x="1020" y="382" font-family="Orbitron, Eurostile, Bank Gothic, Montserrat, Arial, sans-serif" font-size="60" font-weight="700" letter-spacing="12" fill="url(#mcpGrad)">MCP</text>
+  <line x1="1192" y1="362" x2="1410" y2="362" stroke="#2C94AF" stroke-width="4" opacity=".85"/>
+  <text x="781" y="470" font-family="Montserrat, Arial, sans-serif" font-size="28" font-weight="500" letter-spacing="7" fill="url(#tagGrad)" opacity=".95">CAPTURE TODAY. REMEMBER TOMORROW.</text>
+</g>
+</svg>
