@@ -2,7 +2,7 @@
 
 Date: 2026-08-03
 Matrix: [compatibility-spike-matrix.md](./compatibility-spike-matrix.md)
-Status: **Initial host/protocol pass; model and cross-client cases remain gated**
+Status: **Two passes recorded. Pass 1: sandbox host/protocol measurements (below). Pass 2: authenticated Claude Code model-level measurements, 2026-08-03 (see "Pass 2" section). Claude Desktop and Cursor remain evidence-pending.**
 
 The maintainer ratified the matrix before these cases ran. The baseline MCP measurement exposed one narrow protocol gap; the stabilization branch added only the server `instructions` field and reran that oracle. No structural SessionStart implementation was changed as a result of the measurements.
 
@@ -70,3 +70,65 @@ These criteria are derived only from the confirmed results and remain subject to
 ## Gate
 
 The next implementation gate is not “make the hook work”—that host-level fact is already established. It is to obtain authenticated Claude Code model evidence and client access for Desktop/Cursor, then disposition the blocked cases. No structural-delivery acceptance claim should be made from the current partial matrix.
+
+---
+
+# Pass 2: Claude Code model-level measurements (2026-08-03, maintainer machine)
+
+Maintainer authorization for this ledger update was given on the direct maintainer channel, 2026-08-03 09:32 UTC, and is recorded here per channel convention. This pass upgrades the Claude Code column only; it makes no claim about Desktop or Cursor. Adversarial verification by Ari (discussion 4) and the subsequent correction round are incorporated; the two evidence defects Ari caught (a false "every case ran twice" aggregate claim, and truncation language asserting a mechanism the artifacts did not show) are corrected below, not papered over.
+
+## Environment
+
+| Item | Value |
+|---|---|
+| Client | Claude Code 2.1.220, macOS 26.5.2 (arm64), authenticated user state |
+| Checkout measured | `codex/v0.3.1-stabilization` at `910fc08eb85f8b1d405c16a62b3436824cc8be70`; 102/102 tests, build, `verify:package`, and audit re-run on this machine before any case executed |
+| Probe harness | `scripts/compatibility-spike/session-start-probe.mjs` from the branch, unmodified; one variant harness (`oversized-probe.mjs`, hashed in the manifest) for CC-H-07 only, identical receipt logic with a 15,065-byte packet |
+| Probe model | claude-haiku-4-5-20251001 |
+| Isolation | Fresh temp project per case, synthetic run-scoped canaries, `--setting-sources project` plus the operator's identity-hook environment bypass. A leak-control session ran first and returned no operator identity-anchor content. |
+
+## Evidence binding
+
+Every artifact for these runs is bound by SHA-256 in [`compatibility-spike-evidence-manifest.json`](./compatibility-spike-evidence-manifest.json) (schema `spike-evidence-manifest/v1`: 27 artifacts, measured commit pinned). Committed manifest digest: `2f032114ba71355b5b02d0e691cdb0306b8091fff98a40b2df80880a9d7ce6a9`. The artifact hashes are the evidentiary reference; workstation paths carry no evidentiary weight.
+
+## Limitation on these runs
+
+The matrix-required pre/post host-configuration comparison (execution control 4) was **not captured** for the completed Claude Code runs; final configurations only were preserved. This is stated as a limitation of these results, not retrofitted. The runner gains capture-before-launch and verify-after-teardown before any further measurement block executes.
+
+## Results (model level, one row per matrix ID)
+
+| Matrix ID | Result | Observed behavior vs oracle, manifest-bound evidence |
+|---|---|---|
+| CC-H-01 | **PASS** | Both attempts: receipt `delivered:true`, `session_source` startup; neutral first-turn probe returned all three run-scoped canaries verbatim before any tool call; exactly one receipt per session (O1, O2, O5 for in-budget packet). Evidence: `CC-H-01/attempt{1,2}/receipts.jsonl`, `session-output.json`. |
+| CC-H-02 | **PASS** | Attempt 1 verified independently by Ari; attempt 2 is the correction-round rerun with client version present in both receipts (harness gap fixed before rerun). Hook re-fired on `claude --resume` with `session_source` resume, one emission per transition, resumed probe returned only the new run's canaries; prior canaries persisted solely as host conversation history, distinguishable via the receipt trail (O4). The original packet's claim that every executed case ran twice was false for this case; corrected on the public record. Evidence: `CC-H-02/attempt{1,2}/*`. |
+| CC-H-03 | **BLOCKED** | No controlled clear transition drivable in print mode; needs an interactive fixture (piggyback proposal stands). |
+| CC-H-04 | **BLOCKED** | Compaction not deterministically forceable in print mode; same interactive-fixture path. |
+| CC-H-05 | **BLOCKED (gap confirmed)** | No `agent_type` reaches SessionStart hook input on drivable paths, consistent with the Pass 1 sandbox observation. Exclusion logic itself is proven by CC-H-06; scoping by agent identity remains unproven. SubagentStart is the likelier correct channel and enters the implementation design as its own measured question. |
+| CC-H-06 | **PASS** | Both attempts, both directions: receipt `bypassed:true` with reason `environment override`, probe returned `NONE`, no orientation payload anywhere in host output (O3). Evidence: `CC-H-06/attempt{1,2}/*`. |
+| CC-H-07 | **FAIL for naive delivery (O5); mechanism: externalization plus model-invisibility** | The host **externalizes** over-limit hook output to session storage (`tool-results/hook-<id>-1-additionalContext.txt`, complete 15,065-byte packet preserved including the trailing canary, hashed in the manifest) and passes only a leading portion into model context. No stderr signal; no pointer the model surfaced in the probe. The naive receipt claimed full delivery of bytes the model never saw. Reproduced on both attempts. Consequences: the adapter must enforce its own budget before emission, and the receipt must record the enforced budget rather than echoing intended bytes. Evidence: `CC-H-07/attempt{1,2}/*` including both `externalized-additionalContext.txt` artifacts. |
+| CC-M-01 | **PASS (model level)** | Both attempts: with the branch build connected as an MCP server, the model quoted the server instructions string verbatim in a neutral no-tools first turn (O6 model layer). Upgrades the Pass 1 protocol-level result. Evidence: `CC-M-01/attempt{1,2}/session-output.json`, `rekindle-dist-index.js` hash. |
+
+## Receipt vocabulary
+
+Per the stable acceptance criteria from adversarial verification, receipts must keep these states distinct and never conflate them: **attempted**, **emitted**, **externalized**, **withheld**, and **model-visible**. A delivery claim requires model-visible evidence or a budget enforced before emission; emitted alone is never "delivered."
+
+## Source-aware support table
+
+| Source / client surface | State |
+|---|---|
+| Claude Code startup | Closed: measured PASS |
+| Claude Code resume | Closed: measured PASS (as of the correction round) |
+| Claude Code clear | Open: interactive fixture required |
+| Claude Code compact | Open: interactive fixture required |
+| Claude Code subagent scope | Open: SubagentStart measurement |
+| Claude Desktop | Evidence-pending |
+| Cursor | Evidence-pending (not installed at time of writing) |
+
+## What was not measured in Pass 2
+
+- Clear and post-compaction delivery and exactly-once behavior (CC-H-03/04).
+- Subagent/role scoping in a real host session (CC-H-05).
+- Claude Desktop and Cursor, all cases.
+- Pre/post host-configuration integrity for the completed runs (stated above as a limitation).
+
+No structural-delivery acceptance claim is made beyond the measured rows. Disposition of this findings artifact remains with the maintainer per the matrix gate.
