@@ -95,6 +95,59 @@
       "bytes": 15065,
       "origin": "host session storage tool-results/, copied for preservation",
       "note": "complete packet incl. trailing canary; proves externalization, not destruction"
+    },
+    "desktop/desktop-cases.sh": {
+      "sha256": "0398de3ba264a61b4acbce223fbbbd9f6a9ebf4e29c40d20f3b1c67fc5789e66",
+      "source": "Desktop runner with capture-before-launch / verify-after-teardown"
+    },
+    "desktop/CD-capture-log.txt": {
+      "sha256": "af4127f482b256dd26218274bd66d09216ea784223eaf7d0143d9858ab01a97a",
+      "source": "timestamped capture/restore log incl. byte-identical restore verification"
+    },
+    "desktop/CD-BACKUP/claude_desktop_config.pre.json": {
+      "sha256": "3aae3a33dc95d8ad73e0686c430027426890d966dd45da5c171ca30f1cb5efd5",
+      "source": "pre-run live config backup (local only, hash binds it)"
+    },
+    "desktop/CD-H-01/attempt1/config-used.json": {
+      "sha256": "fcc3c94abcf0e8bdbfc59649cb8297b5b77559ad4c17dd7878199d0ecf882868"
+    },
+    "desktop/CD-H-01/attempt1/chat-session-screenshot.png": {
+      "sha256": "847e7878cf86615745b209a36803dffb4ee0ab183ce0bec5ffe7a87f735f155e"
+    },
+    "desktop/CD-H-01/attempt2/config-used.json": {
+      "sha256": "7e5efc52a4254163cfcce454f3146c38716b9dda652bf1c4554efda4a49e06d9"
+    },
+    "desktop/CD-H-01/attempt2/chat-session-screenshot.png": {
+      "sha256": "30849988657b9e5c2abaab1a22df44c3e36895b0dc8ce512bca08609219771cc"
+    },
+    "desktop/CD-M-01/mcp-log-as-shipped-attach-failure.log": {
+      "sha256": "33357520f73759d0d9556efcc0ce44ca4558f111629bb2fc323f87fb281c300e",
+      "source": "ENOENT mkdir /.rekindle/db crash, attach failure"
+    },
+    "desktop/CD-M-01/attach-failure-toast-screenshot.png": {
+      "sha256": "f86338e0115a6465fc9a4e51b21a2f14b8845401785c8f0f6d0ada364f1a8210"
+    },
+    "desktop/CD-M-01/config-used-cwd-wrapper.json": {
+      "sha256": "890cb615cc17491d74e1c16d78be65f624cecbe34215953a42ff29bc7688b4d6",
+      "source": "documented deviation: bash -c cd wrapper"
+    },
+    "desktop/CD-M-01/attempt1-reply-screenshot.png": {
+      "sha256": "e7326b4a7d43cd5bd5d0bca5c921d745fa32cc900b72c710576ffda8b3705ab2",
+      "source": "model quotes deferred tool listing, no instructions"
+    },
+    "desktop/CD-M-01/attempt2-reply-screenshot.png": {
+      "sha256": "1cd4821e53b26e4dba14e347be995bb6889a1b5a77957e1f8267d3aca9a9b7de",
+      "source": "reproduction"
+    },
+    "desktop/CD-M-02/mcp-log-reconnect.log": {
+      "sha256": "0741772d599ae0949514ee108f1525d12de9788fb722464355b6e780beb635a7",
+      "source": "clean re-handshake after app restart"
     }
+  },
+  "desktop_pass": {
+    "date": "2026-08-03",
+    "client": "Claude Desktop 1.24012.9",
+    "chat_model": "Fable 5 (High)",
+    "artifact_count_total": 40
   }
 }

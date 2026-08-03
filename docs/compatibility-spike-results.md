@@ -2,7 +2,7 @@
 
 Date: 2026-08-03
 Matrix: [compatibility-spike-matrix.md](./compatibility-spike-matrix.md)
-Status: **Two passes recorded. Pass 1: sandbox host/protocol measurements (below). Pass 2: authenticated Claude Code model-level measurements, 2026-08-03 (see "Pass 2" section). Claude Desktop and Cursor remain evidence-pending.**
+Status: **Three passes recorded. Pass 1: sandbox host/protocol measurements (below). Pass 2: authenticated Claude Code model-level measurements, 2026-08-03. Pass 3: Claude Desktop measurements, 2026-08-03. Cursor remains evidence-pending (maintainer chose the Cursor CLI installer as the measurement surface).**
 
 The maintainer ratified the matrix before these cases ran. The baseline MCP measurement exposed one narrow protocol gap; the stabilization branch added only the server `instructions` field and reran that oracle. No structural SessionStart implementation was changed as a result of the measurements.
 
@@ -132,3 +132,53 @@ Per the stable acceptance criteria from adversarial verification, receipts must 
 - Pre/post host-configuration integrity for the completed runs (stated above as a limitation).
 
 No structural-delivery acceptance claim is made beyond the measured rows. Disposition of this findings artifact remains with the maintainer per the matrix gate.
+
+---
+
+# Pass 3: Claude Desktop measurements (2026-08-03, maintainer machine)
+
+Maintainer authorization for the Desktop block was given on the direct maintainer channel (2026-08-03 09:32 UTC, reconfirmed ~10:05 UTC). The close-out decision to skip the CD-M-02 model-level probe was the maintainer's, ~10:57 UTC; rationale recorded in that row.
+
+## Environment
+
+| Item | Value |
+|---|---|
+| Client | Claude Desktop 1.24012.9, macOS (arm64) |
+| Chat model | Fable 5 (High) via the app's chat surface; delivery mechanics measured here are client behavior, not model behavior |
+| Rekindle build | `dist/index.js` rebuilt from `codex/v0.3.1-stabilization`; SHA-256 identical to the Pass 2 manifest artifact (`3ab52fec...`), so all passes measured the same build |
+| Evidence form | Screenshots, client MCP logs, config snapshots, receipt-file absence. Weaker by nature than the machine-readable Claude Code column; stated here per the source-aware discipline |
+
+## Execution control 4: implemented for this block
+
+The gap stated as a limitation on Pass 2 was closed before any Desktop case ran: the runner (`desktop-cases.sh`, hashed in the manifest) captured and SHA-256-hashed the live `claude_desktop_config.json` before any mutation, every mutation was a jq merge preserving all user preferences, and teardown restored the original config **verified byte-identical** against the pre-run hash (`3aae3a33...`, restore log in `CD-capture-log.txt`).
+
+## Results (one row per matrix ID)
+
+| Matrix ID | Result | Observed behavior vs oracle, manifest-bound evidence |
+|---|---|---|
+| CD-H-01 | **NOT SUPPORTED** | A Claude-Code-style `hooks.SessionStart` block in `claude_desktop_config.json` is silently ignored (O1: never invoked). Two attempts, each a full app launch plus a completed chat session: no probe execution, no receipt file, no validation error, app fully functional. Evidence: `desktop/CD-H-01/attempt{1,2}/*`. |
+| CD-M-01 | **Two findings** | **(a) FAIL to attach as shipped:** Claude Desktop spawns MCP servers with working directory `/`; rekindle 0.3.0 resolves its SQLite path from cwd at module load, so it crashes (`ENOENT: mkdir '/.rekindle/db'`) before completing initialization. The client surfaces "Could not attach to MCP server rekindle." Rekindle 0.3.0 is unusable in Claude Desktop without a wrapper. Evidence: `desktop/CD-M-01/mcp-log-as-shipped-attach-failure.log`, toast screenshot. **(b) With a documented cwd-wrapper deviation** (`bash -c "cd <spike project> && exec node dist/index.js"`, config in manifest): protocol layer PASS (initialize completes; the same build demonstrably emits the `instructions` field, verified by direct stdio initialize), model layer **FAIL** (O6): in two fresh chats the model reported and quoted verbatim that the only rekindle content in its context is a deferred tool listing (10 tool names with one-line descriptions) surfaced via the client's tool_search mechanism; no instructions text, reproduced twice. Evidence: `desktop/CD-M-01/attempt{1,2}-reply-screenshot.png`. |
+| CD-M-02 | **PARTIAL: protocol level only** | Server reconnects cleanly after app restart (fresh spawn, complete re-handshake, tools re-listed; `desktop/CD-M-02/mcp-log-reconnect.log`). Model-level freshness in an existing chat was **NOT RUN** by maintainer decision at close-out: CD-M-01 had already proven the instructions channel never reaches the model on this client, so the probe would have measured the freshness of a non-delivering channel. |
+
+## Consequences for v0.3.1
+
+1. **Storage must not derive from cwd.** Desktop launches servers at `/`. The storage root needs an explicit resolution order (env var, then home-directory default), and module load must not require a writable database; instructions/handshake must succeed storage-less.
+2. **The MCP instructions field is a Claude-Code-only model channel** among clients measured so far. On Claude Desktop, the only guidance that reaches the model is tool names and short descriptions, so Desktop orientation guidance must ride in tool descriptions (the `boot_report` description is the natural carrier).
+3. The layered delivery contract is confirmed by measurement: no single channel exists across both clients.
+
+## Source-aware support table (updated)
+
+| Source / client surface | State |
+|---|---|
+| Claude Code startup / resume | Closed: measured PASS (Pass 2) |
+| Claude Code clear / compact / subagent scope | Open (Pass 2 rows unchanged) |
+| Claude Desktop hook channel | Closed: NOT SUPPORTED |
+| Claude Desktop MCP instructions | Closed: protocol-only; model delivery absent |
+| Claude Desktop tool descriptions | Observed present in model context (candidate carrier, not yet a measured delivery contract) |
+| Cursor (CLI surface, per maintainer ruling) | Evidence-pending: awaiting install |
+
+## Evidence binding
+
+The committed manifest now binds 40 artifacts (27 from Pass 2 plus 13 Desktop artifacts under `desktop/`). Extended manifest digest: `ddb6e9d59f66f47a012d8dfb35924ff4fb915abe6fae0022a966a28da8e70bab`. The Pass 2 section's digest citation reflects the manifest as first committed and remains historically accurate.
+
+No structural-delivery acceptance claim is made from this pass. Disposition remains with the maintainer per the matrix gate.
