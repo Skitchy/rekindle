@@ -31,9 +31,16 @@ export function setupHooks(targetDir: string): void {
   let config: HooksConfig = {};
   if (existsSync(settingsPath)) {
     try {
-      config = JSON.parse(readFileSync(settingsPath, "utf-8")) as HooksConfig;
-    } catch {
-      config = {};
+      const parsed = JSON.parse(readFileSync(settingsPath, "utf-8")) as unknown;
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error("settings root must be a JSON object");
+      }
+      config = parsed as HooksConfig;
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Refusing to modify ${settingsPath}: existing settings are invalid JSON (${detail}). Fix the file and run setup-hooks again.`
+      );
     }
   }
 

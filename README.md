@@ -3,7 +3,7 @@
 # Rekindle
 
 [![npm](https://img.shields.io/npm/v/rekindle)](https://www.npmjs.com/package/rekindle)
-[![tests](https://img.shields.io/badge/tests-101%20passing-brightgreen)](#tests)
+[![tests](https://img.shields.io/badge/tests-102%20passing-brightgreen)](#tests)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Glama score](https://glama.ai/mcp/servers/Skitchy/rekindle/badges/score.svg)](https://glama.ai/mcp/servers/Skitchy/rekindle)
 
@@ -26,6 +26,8 @@ Rekindle is an MCP continuity engine that solves **session orientation**, not ju
 **v0.3.0 — "Survive the Long Middle"** — PreCompact capture system, open loops, review tracking. [Release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.3.0)
 
 ## Quick Start
+
+Requires Node.js 20 or newer.
 
 ```bash
 npx rekindle init

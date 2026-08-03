@@ -14,10 +14,16 @@ import { registerReadCapture } from "./tools/read-capture.js";
 import { registerCaptureNow } from "./tools/capture-now.js";
 
 export function createServer(storage: RekindleStorage, captureManager: CaptureManager): McpServer {
-  const server = new McpServer({
-    name: "rekindle",
-    version: "0.3.0",
-  });
+  const server = new McpServer(
+    {
+      name: "rekindle",
+      version: "0.3.0",
+    },
+    {
+      instructions:
+        "Rekindle is a local continuity server. At session start, call boot_report before substantive work to inspect identity, project-scoped memory state, the latest checkpoint, open loops, and available PreCompact captures. If captures are listed, use list_captures and read_capture to recover context before relying on the checkpoint. At session end, call end_session with the checkpoint, unresolved open loops, constraints, warnings, and next-session focus. Orientation scores are structural checks, not guarantees that every relevant context item was loaded.",
+    }
+  );
 
   registerStoreMemory(server, storage);
   registerSearchMemory(server, storage);
