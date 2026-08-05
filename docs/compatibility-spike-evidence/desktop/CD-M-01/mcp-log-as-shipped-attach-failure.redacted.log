@@ -1,0 +1,34 @@
+2026-08-03T10:45:04.459Z [rekindle] [info] Initializing server... { metadata: undefined }
+2026-08-03T10:45:04.667Z [rekindle] [info] Using MCP server command: /opt/homebrew/bin/node with path: {
+  metadata: {
+    paths: [
+      '<REDACTED: 30 PATH entries — full environment PATH dump withheld as personal toolchain inventory>',
+      [length]: 30
+    ]
+  }
+} %o
+2026-08-03T10:45:04.668Z [rekindle] [info] Server started and connected successfully { metadata: undefined }
+2026-08-03T10:45:04.780Z [rekindle] [info] Message from client: method="initialize" id=0 params { metadata: undefined }
+node:fs:1377
+  const result = binding.mkdir(
+                         ^
+
+Error: ENOENT: no such file or directory, mkdir '/.rekindle/db'
+    at mkdirSync (node:fs:1377:26)
+    at new RekindleStorage (file://<WORKSPACE>/rekindle/dist/storage/sqlite.js:67:13)
+    at file://<WORKSPACE>/rekindle/dist/index.js:29:17
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'mkdir',
+  path: '/.rekindle/db'
+}
+
+Node.js v22.22.0
+2026-08-03T10:45:14.143Z [rekindle] [info] Server transport closed { metadata: undefined }
+2026-08-03T10:45:14.143Z [rekindle] [info] Server transport closed unexpectedly, this is likely due to the process exiting early. If you are developing this MCP server you can add output to stderr (i.e. `console.error('...')` in JavaScript, `print('...', file=sys.stderr)` in python) and it will appear in this log. { metadata: undefined }
+2026-08-03T10:45:14.143Z [rekindle] [error] Server disconnected. For troubleshooting guidance, please visit our [debugging documentation](https://modelcontextprotocol.io/docs/tools/debugging) { metadata: { context: 'connection', stack: undefined } }
+2026-08-03T10:45:14.143Z [rekindle] [info] Client transport closed { metadata: undefined }
+2026-08-03T10:45:14.143Z [rekindle] [info] Client transport closed { metadata: undefined }

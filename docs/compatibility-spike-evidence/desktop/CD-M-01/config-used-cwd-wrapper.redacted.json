@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "rekindle": {
+      "command": "/bin/bash",
+      "args": [
+        "-c",
+        "cd <WORKSPACE>/rekindle-spike/runs-2026-08-03/CD-M-01/project && exec node <WORKSPACE>/rekindle/dist/index.js"
+      ]
+    }
+  }
+}
