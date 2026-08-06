@@ -1,0 +1,92 @@
+{
+ "baseline-contrast/mcp-server-rekindle.slice.redacted.log": {
+  "original": "baseline-contrast/mcp-server-rekindle.slice.log",
+  "original_sha256": "dea5f957a4bee9c009d1c246f360218058c77f813421dc15a277c784a945f6fa",
+  "derivative_sha256": "a512c69b5ff125d4a7af3ba58c559ae3129b8df0906501d56c134bc6c8fda139",
+  "transform": "PATH array block redacted; home path generalized to <HOME>"
+ },
+ "baseline-contrast/mcpServers-stanza.json": {
+  "original": "baseline-contrast/config-used.json",
+  "original_sha256": "7c29b0c718718aa5e904661fd2b69f1e22ba22fe7b05bd50c36ff0b9999d6b46",
+  "derivative_sha256": "51b96a9ef80c21f2e2229562aabceb18a7cce25d51e8a54d1673f9e821f2a87c",
+  "transform": "mcpServers stanza extracted (full live config withheld); home path generalized; dist path generalized to <WORKSPACE>"
+ },
+ "baseline-contrast/dist.sha256": {
+  "original": "baseline-contrast/dist.sha256",
+  "original_sha256": "af4bff149db4866ec5d38b26f5370a4bceeb3e1d51cd97507f7730aed2b4b913",
+  "derivative_sha256": "2fd04c03ace570f7859938d4d19954d46236c40f8c64e389af8fb971eb2165d4",
+  "transform": "path generalized to relative"
+ },
+ "baseline-contrast/fixture-home-tree.txt": {
+  "original": "baseline-contrast/fixture-home-tree.txt",
+  "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "derivative_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "transform": "verbatim"
+ },
+ "attempt1/mcp-server-rekindle.slice.redacted.log": {
+  "original": "attempt1/mcp-server-rekindle.slice.log",
+  "original_sha256": "d3321e7f4351dfff55ff3900e9f9af75ad7dd31a0583fba16f6da6020a9d4142",
+  "derivative_sha256": "bd658f6acf1adb7eae450120387c8a0edafcb06818005227b174837c0540bc9d",
+  "transform": "PATH array block redacted; home path generalized to <HOME>"
+ },
+ "attempt1/mcpServers-stanza.json": {
+  "original": "attempt1/config-used.json",
+  "original_sha256": "97af94bcd80dbb6149f18942b61003da0a1c1bb463f7362d733664f0264f3689",
+  "derivative_sha256": "28a26d07f5a2794d377bb58efb05ab2ccb502a6777bc5b368c2e73d64824b988",
+  "transform": "mcpServers stanza extracted (full live config withheld); home path generalized; dist path generalized to <WORKSPACE>"
+ },
+ "attempt1/dist.sha256": {
+  "original": "attempt1/dist.sha256",
+  "original_sha256": "93c3b6e9adc3c1df3ca12f13e4f3afbad3dea966e0d320f43d6f90a0fc615d5b",
+  "derivative_sha256": "a37f79cb1749aa6033677f218dcd9679626f0b8ea4762d1c8b96f8b6fb7edce2",
+  "transform": "path generalized to relative"
+ },
+ "attempt1/fixture-home-tree.txt": {
+  "original": "attempt1/fixture-home-tree.txt",
+  "original_sha256": "60691e272d1d2cdbd4ccc973e14044af57ea7b941157569d0dab32cd63e96f3f",
+  "derivative_sha256": "60691e272d1d2cdbd4ccc973e14044af57ea7b941157569d0dab32cd63e96f3f",
+  "transform": "verbatim"
+ },
+ "attempt2/mcp-server-rekindle.slice.redacted.log": {
+  "original": "attempt2/mcp-server-rekindle.slice.log",
+  "original_sha256": "d75b260487a7136c41c1465419f45554b6c25ff49cdfde827754ddd2df40a3b8",
+  "derivative_sha256": "8d63f74f9ff429a88ef992740636be35360eecfa3170b8b8f77390c5c8dbe5cb",
+  "transform": "PATH array block redacted; home path generalized to <HOME>"
+ },
+ "attempt2/mcpServers-stanza.json": {
+  "original": "attempt2/config-used.json",
+  "original_sha256": "db0a98cee34f03dfa9110abbafacec0394c88eb217ddb95bb490120fd57548ec",
+  "derivative_sha256": "081af70e28a46db508946dc68b01ac592bed76598fbacee41bc6e0481165d691",
+  "transform": "mcpServers stanza extracted (full live config withheld); home path generalized; dist path generalized to <WORKSPACE>"
+ },
+ "attempt2/dist.sha256": {
+  "original": "attempt2/dist.sha256",
+  "original_sha256": "93c3b6e9adc3c1df3ca12f13e4f3afbad3dea966e0d320f43d6f90a0fc615d5b",
+  "derivative_sha256": "a37f79cb1749aa6033677f218dcd9679626f0b8ea4762d1c8b96f8b6fb7edce2",
+  "transform": "path generalized to relative"
+ },
+ "attempt2/fixture-home-tree.txt": {
+  "original": "attempt2/fixture-home-tree.txt",
+  "original_sha256": "60691e272d1d2cdbd4ccc973e14044af57ea7b941157569d0dab32cd63e96f3f",
+  "derivative_sha256": "60691e272d1d2cdbd4ccc973e14044af57ea7b941157569d0dab32cd63e96f3f",
+  "transform": "verbatim"
+ },
+ "ENVIRONMENT.txt": {
+  "original": "ENVIRONMENT.txt",
+  "original_sha256": "70478c14c123cfe6a3aab396536746a6ec4f4416cf6ab36c77d071d01dc574b9",
+  "derivative_sha256": "70478c14c123cfe6a3aab396536746a6ec4f4416cf6ab36c77d071d01dc574b9",
+  "transform": "home path generalized to <HOME>"
+ },
+ "capture-log.txt": {
+  "original": "capture-log.txt",
+  "original_sha256": "cdd4ee211c4f9e41bc2af341c7b3ad74b60e0a07bf79ce07b12abe2ed6a7165a",
+  "derivative_sha256": "cdd4ee211c4f9e41bc2af341c7b3ad74b60e0a07bf79ce07b12abe2ed6a7165a",
+  "transform": "home path generalized to <HOME>"
+ },
+ "gate1-desktop.sh": {
+  "original": "gate1-desktop.sh",
+  "original_sha256": "44fb9051b25a3027e3511f5ac15bab93a723e9ba2a33c5196ef4c4b4ed3740c6",
+  "derivative_sha256": "44fb9051b25a3027e3511f5ac15bab93a723e9ba2a33c5196ef4c4b4ed3740c6",
+  "transform": "home path generalized to <HOME>"
+ }
+}

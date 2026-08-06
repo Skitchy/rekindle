@@ -1,0 +1,19 @@
+2026-08-06T22:40:54.046Z [rekindle] [info] Initializing server... { metadata: undefined }
+2026-08-06T22:40:54.271Z [rekindle] [info] Using MCP server command: /opt/homebrew/bin/node with path: {
+  metadata: {
+    paths: [ <PATH ENTRIES REDACTED: personal toolchain inventory> ]: 30
+    ]
+  }
+} %o
+2026-08-06T22:40:54.271Z [rekindle] [info] Server started and connected successfully { metadata: undefined }
+2026-08-06T22:40:55.288Z [rekindle] [info] Message from client: method="initialize" id=0 params { metadata: undefined }
+2026-08-06T22:40:55.314Z [rekindle] [info] Message from server: id=0 result { metadata: undefined }
+2026-08-06T22:40:55.361Z [rekindle] [info] Message from client: method="notifications/initialized" { metadata: undefined }
+2026-08-06T22:40:55.361Z [rekindle] [info] Message from client: method="tools/list" id=1 params { metadata: undefined }
+2026-08-06T22:40:55.388Z [rekindle] [info] Message from server: id=1 result { metadata: undefined }
+2026-08-06T22:41:27.607Z [rekindle] [info] Shutting down server... { metadata: undefined }
+2026-08-06T22:41:27.607Z [rekindle] [info] Client transport closed { metadata: undefined }
+2026-08-06T22:41:27.607Z [rekindle] [info] Server transport closed (intentional shutdown) { metadata: undefined }
+2026-08-06T22:41:27.607Z [rekindle] [info] Client transport closed { metadata: undefined }
+2026-08-06T22:41:27.650Z [rekindle] [info] Server transport closed { metadata: undefined }
+2026-08-06T22:41:27.651Z [rekindle] [info] Client transport closed { metadata: undefined }

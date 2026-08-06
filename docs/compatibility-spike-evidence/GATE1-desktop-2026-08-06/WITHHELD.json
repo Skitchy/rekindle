@@ -1,0 +1,16 @@
+{
+ "withheld": [
+  {
+   "path": "BACKUP/",
+   "reason": "live Desktop config backup: maintainer personal context; retained private, producible on request"
+  },
+  {
+   "path": "*/config-used.json",
+   "reason": "jq merge of live config: carries all maintainer settings; mcpServers stanza published instead"
+  },
+  {
+   "path": "*/mcp-server-rekindle.slice.log",
+   "reason": "raw slices carry PATH toolchain inventory; redacted derivatives published"
+  }
+ ]
+}
