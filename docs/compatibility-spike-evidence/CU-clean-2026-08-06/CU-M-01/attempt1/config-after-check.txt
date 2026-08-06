@@ -1,0 +1,1 @@
+/private/tmp/rk-cu-clean/CU-M-01/attempt1/project/.cursor/mcp.json: OK

@@ -1,0 +1,1 @@
+{ "mcpServers": { "rekindle": { "command": "node", "args": ["/private/tmp/rk-cu-spike/build/dist/index.js"] } } }

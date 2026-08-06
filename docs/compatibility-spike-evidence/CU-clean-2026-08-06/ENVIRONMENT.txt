@@ -1,0 +1,9 @@
+# Environment record (clean-account rerun)
+date_utc: 2026-08-06T22:13:02Z
+client: cursor-agent 2026.08.04-aaa8809
+account: Logged in as thetinkeringdev@gmail.com  (deliberately public store-contact account, maintainer ruling)
+os: Darwin 25.5.0 arm64
+rekindle_build: 7f09c85, dist/index.js sha256 3ab52fec7bcdfa8e686790c418b6aa342195cdbefff0e90a5bd7c9681aef1e26 (morning build reused, hash-verified)
+fixtures: fresh temporary projects under /private/tmp/rk-cu-clean, synthetic data only
+deviation: --trust on all agent runs, --approve-mcps on CU-M-01 runs. The clean account has no prior workspace-trust state (first run stalled at the interactive trust prompt); these documented non-interactive flags clear pre-session gates only and do not alter the measured delivery channels.
+exclusion: server-created .rekindle/ sqlite byproducts (3 CU-M-01 fixture projects, protocol-project) are excluded from the published packet by the repo .rekindle/ gitignore rule; they are storage side effects, not oracle evidence. Manifest below matches the published tree exactly.

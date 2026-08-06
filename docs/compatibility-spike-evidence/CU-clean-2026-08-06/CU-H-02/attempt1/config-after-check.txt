@@ -1,0 +1,3 @@
+/private/tmp/rk-cu-clean/CU-H-02/attempt1/project/.cursor/hooks.json: OK
+/private/tmp/rk-cu-clean/CU-H-02/attempt1/project/hooks/cursor-shim.sh: OK
+/private/tmp/rk-cu-spike/build/scripts/compatibility-spike/session-start-probe.mjs: OK

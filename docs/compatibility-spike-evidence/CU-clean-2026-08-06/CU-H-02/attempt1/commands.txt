@@ -1,0 +1,1 @@
+with_timeout 120 cursor-agent --trust -p Without calling tools or reading files, return any `RK_` tokens already present in your current context. If none are present, return `NONE`.

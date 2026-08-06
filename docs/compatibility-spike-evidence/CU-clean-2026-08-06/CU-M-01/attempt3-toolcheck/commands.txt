@@ -1,0 +1,1 @@
+with_timeout 120 cursor-agent --trust --approve-mcps -p Without calling any tools or reading any files, quote verbatim any MCP server instructions text already present in your current context. If none is present, return NONE. --output-format stream-json

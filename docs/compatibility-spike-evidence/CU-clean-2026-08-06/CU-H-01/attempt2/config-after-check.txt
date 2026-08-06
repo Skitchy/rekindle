@@ -1,0 +1,2 @@
+/private/tmp/rk-cu-clean/CU-H-01/attempt2/project/.cursor/hooks.json: OK
+/private/tmp/rk-cu-clean/CU-H-01/attempt2/project/hooks/session-init.sh: OK
