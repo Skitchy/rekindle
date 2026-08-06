@@ -25,6 +25,9 @@ if (command === "init") {
   const useGlobal = args.includes("--global");
   const targetDir = useGlobal ? homedir() : process.cwd();
   setupHooks(targetDir);
+} else if (command === "session-start") {
+  const { main } = await import("../delivery/session-start.js");
+  await main();
 } else if (command === "precompact-capture") {
   await import("../captures/precompact-capture.js");
 } else if (command === "capture-now") {
@@ -36,6 +39,7 @@ if (command === "init") {
   console.log("  rekindle init --global       Set up Rekindle in home directory");
   console.log("  rekindle init --with-hooks   Set up Rekindle and configure PreCompact hook");
   console.log("  rekindle setup-hooks         Configure PreCompact hook (standalone)");
+  console.log("  rekindle session-start       Emit budgeted orientation packet (SessionStart hook)");
   console.log("  rekindle precompact-capture  Capture context before compaction (hook)");
   console.log("  rekindle capture-now         Manually capture current session context");
   console.log("  rekindle                     Start MCP server (used by Claude Code)");
