@@ -275,7 +275,17 @@ The hook receives session context on stdin (session_id, transcript_path, cwd, ho
 |----------|---------|-------------|
 | `REKINDLE_PRECOMPACT_MAX_MESSAGES` | `80` | Max messages to capture |
 | `REKINDLE_PRECOMPACT_MAX_CHARS` | `120000` | Max characters to capture |
-| `REKINDLE_BASE_DIR` | Auto-detected | Base directory for `.rekindle/` |
+| `REKINDLE_BASE_DIR` | Resolved (see below) | Base directory for `.rekindle/` |
+
+**Storage root resolution.** All Rekindle entry points (server, PreCompact hook) resolve the directory holding `.rekindle/` through one rule, in order:
+
+1. `REKINDLE_BASE_DIR`, if set — explicit always wins
+2. Derived from `REKINDLE_DB_PATH`, when it points at a canonical `<base>/.rekindle/db/` layout
+3. An existing `.rekindle/` in the current working directory (never when cwd is the filesystem root)
+4. An existing `.rekindle/` in your home directory
+5. Otherwise: your home directory — never the spawn point
+
+Rules 3 and 5 exist because some hosts (e.g. Claude Desktop) spawn MCP servers at `cwd=/`; a spawn point is not a storage location. If storage cannot be created, the server exits with a message naming the fix instead of a stack trace.
 
 </details>
 
