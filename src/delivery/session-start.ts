@@ -20,6 +20,12 @@ export interface HookInput {
 export interface SessionStartResult {
   /** Hook JSON to print to stdout, or null when nothing must be emitted. */
   stdout: string | null;
+  /**
+   * The budgeted packet text itself, or null on bypass/error. Client adapters
+   * with a different hook response shape (Cursor: top-level snake_case
+   * additional_context) re-wrap this instead of parsing stdout back apart.
+   */
+  packet: string | null;
   receipt: DeliveryReceipt;
   receiptPath: string;
 }
@@ -85,7 +91,7 @@ export function runSessionStart(
       bypass_reason: bypassReason,
       error: null,
     };
-    return { stdout: null, receipt, receiptPath };
+    return { stdout: null, packet: null, receipt, receiptPath };
   }
 
   let sections: PacketSection[];
@@ -115,7 +121,7 @@ export function runSessionStart(
       bypass_reason: null,
       error: err instanceof Error ? err.message : String(err),
     };
-    return { stdout: null, receipt, receiptPath };
+    return { stdout: null, packet: null, receipt, receiptPath };
   }
 
   const packet = budgetPacket(sections);
@@ -134,7 +140,7 @@ export function runSessionStart(
       additionalContext: packet.text,
     },
   });
-  return { stdout, receipt, receiptPath };
+  return { stdout, packet: packet.text, receipt, receiptPath };
 }
 
 export async function main(): Promise<void> {

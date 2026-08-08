@@ -313,6 +313,29 @@ Rules 3 and 5 exist because some hosts (e.g. Claude Desktop) spawn MCP servers a
 | Cursor | stdio | Compatible (same MCP config format) |
 | Any MCP stdio client | stdio | Compatible |
 
+### Cursor: session-start orientation (opt-in)
+
+Cursor's hook system can deliver the budgeted orientation packet at session
+start, measured working in the v0.3.1 compatibility spike. Setup is manual
+and opt-in — Rekindle never installs hooks without being asked. Add to
+`.cursor/hooks.json` in your project:
+
+```json
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [ { "command": "rekindle session-start --client cursor" } ]
+  }
+}
+```
+
+**Privacy:** Cursor's hook payload includes your account email and workspace
+paths. The adapter treats that payload as personal by default: it extracts
+only the session ID and workspace root (used in-process for storage
+resolution), and neither the raw payload, the email, nor any path is ever
+written to receipts or any other artifact. Background agents are bypassed by
+default (truthfully receipted); opt in with `REKINDLE_ORIENT_BACKGROUND_AGENTS=1`.
+
 <details>
 <summary><strong>Architecture</strong></summary>
 
