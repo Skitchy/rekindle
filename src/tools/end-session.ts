@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { RekindleStorage } from "../storage/sqlite.js";
 import { CaptureManager } from "../captures/index.js";
+import { withGuidance } from "../delivery/guidance.js";
 
 interface StoredRecord {
   type: string;
@@ -16,7 +17,10 @@ export function registerEndSession(
 ): void {
   server.tool(
     "end_session",
-    "Capture a structured session handoff. Writes multiple records to the local SQLite database: one checkpoint (required), plus optional decisions, open loops, preferences, constraints, warnings, relational delta, and next session focus. Each record is stored with a typed 'type' column (not content prefixes) and linked to a session record via session_id. Also creates a session row in the sessions table with a summary, orientation score, and gap count. The checkpoint is retrievable by boot_report on the next session start. All records are searchable via search_memory and list_memories. Call this at the end of every substantive session to ensure the next session can pick up the thread.",
+    withGuidance(
+      "end_session",
+      "Capture a structured session handoff. Writes multiple records to the local SQLite database: one checkpoint (required), plus optional decisions, open loops, preferences, constraints, warnings, relational delta, and next session focus. Each record is stored with a typed 'type' column (not content prefixes) and linked to a session record via session_id. Also creates a session row in the sessions table with a summary, orientation score, and gap count. The checkpoint is retrievable by boot_report on the next session start. All records are searchable via search_memory and list_memories."
+    ),
     {
       checkpoint: z
         .string()

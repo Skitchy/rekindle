@@ -1,9 +1,7 @@
 #!/usr/bin/env node
 
-import { resolve } from "node:path";
-import { existsSync } from "node:fs";
-import { homedir } from "node:os";
 import { CaptureManager } from "./CaptureManager.js";
+import { resolveStorageRoot } from "../storage/root.js";
 import type { HookInput } from "./types.js";
 
 async function readStdin(): Promise<string> {
@@ -12,15 +10,6 @@ async function readStdin(): Promise<string> {
     chunks.push(chunk);
   }
   return Buffer.concat(chunks).toString("utf-8");
-}
-
-function findRekindleBase(cwd: string): string {
-  if (existsSync(resolve(cwd, ".rekindle"))) return cwd;
-
-  const home = homedir();
-  if (existsSync(resolve(home, ".rekindle"))) return home;
-
-  return cwd;
 }
 
 async function main(): Promise<void> {
@@ -39,7 +28,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const baseDir = findRekindleBase(input.cwd);
+  const { baseDir } = resolveStorageRoot({ cwd: input.cwd });
   const manager = new CaptureManager(baseDir);
   const entry = manager.capture(input);
 

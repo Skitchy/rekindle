@@ -1,0 +1,24 @@
+{
+ "packet": "Gate 1 Desktop measurement 2026-08-06",
+ "artifact_count": 18,
+ "artifacts": {
+  "DERIVATIONS.json": "44f5f028b80619d120cd272c045ab0a073523c5f781ea40c6f9be727d4a0885c",
+  "ENVIRONMENT.txt": "70478c14c123cfe6a3aab396536746a6ec4f4416cf6ab36c77d071d01dc574b9",
+  "RESULTS.md": "e4f5d4cc764e64bb24fa972df42fef842bb8c53f57d2de20d0d1d5b2989767da",
+  "WITHHELD.json": "81af9787a85ed391c9559d760e6b9d0f7874aa5819188b8fb54b9ce653f3650e",
+  "attempt1/dist.sha256": "a37f79cb1749aa6033677f218dcd9679626f0b8ea4762d1c8b96f8b6fb7edce2",
+  "attempt1/fixture-home-tree.txt": "60691e272d1d2cdbd4ccc973e14044af57ea7b941157569d0dab32cd63e96f3f",
+  "attempt1/mcp-server-rekindle.slice.redacted.log": "bd658f6acf1adb7eae450120387c8a0edafcb06818005227b174837c0540bc9d",
+  "attempt1/mcpServers-stanza.json": "28a26d07f5a2794d377bb58efb05ab2ccb502a6777bc5b368c2e73d64824b988",
+  "attempt2/dist.sha256": "a37f79cb1749aa6033677f218dcd9679626f0b8ea4762d1c8b96f8b6fb7edce2",
+  "attempt2/fixture-home-tree.txt": "60691e272d1d2cdbd4ccc973e14044af57ea7b941157569d0dab32cd63e96f3f",
+  "attempt2/mcp-server-rekindle.slice.redacted.log": "8d63f74f9ff429a88ef992740636be35360eecfa3170b8b8f77390c5c8dbe5cb",
+  "attempt2/mcpServers-stanza.json": "081af70e28a46db508946dc68b01ac592bed76598fbacee41bc6e0481165d691",
+  "baseline-contrast/dist.sha256": "2fd04c03ace570f7859938d4d19954d46236c40f8c64e389af8fb971eb2165d4",
+  "baseline-contrast/fixture-home-tree.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "baseline-contrast/mcp-server-rekindle.slice.redacted.log": "a512c69b5ff125d4a7af3ba58c559ae3129b8df0906501d56c134bc6c8fda139",
+  "baseline-contrast/mcpServers-stanza.json": "51b96a9ef80c21f2e2229562aabceb18a7cce25d51e8a54d1673f9e821f2a87c",
+  "capture-log.txt": "cdd4ee211c4f9e41bc2af341c7b3ad74b60e0a07bf79ce07b12abe2ed6a7165a",
+  "gate1-desktop.sh": "44fb9051b25a3027e3511f5ac15bab93a723e9ba2a33c5196ef4c4b4ed3740c6"
+ }
+}

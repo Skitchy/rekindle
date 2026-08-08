@@ -1,0 +1,16 @@
+{
+  "mcpServers": {},
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/bash -c 'date -u +%FT%TZ >> \"<WORKSPACE>/rekindle-spike/runs-2026-08-03/CD-H-01/attempt1/hook-receipt.txt\"'",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { CaptureManager } from "../captures/index.js";
+import { withGuidance } from "../delivery/guidance.js";
 
 export function registerReadCapture(
   server: McpServer,
@@ -8,7 +9,10 @@ export function registerReadCapture(
 ): void {
   server.tool(
     "read_capture",
-    "Read a PreCompact capture by ID. Use this to recover context that was lost during mid-session compaction. Three modes control token cost: 'summary' (one paragraph, cheap), 'structured' (decisions/loops/warnings, moderate), 'raw' (full transcript excerpt, expensive — only when summary or structured is insufficient). Start with the lightest mode that answers your question.",
+    withGuidance(
+      "read_capture",
+      "Read a PreCompact capture by ID. Use this to recover context that was lost during mid-session compaction. Three modes control token cost: 'summary' (one paragraph, cheap), 'structured' (decisions/loops/warnings, moderate), 'raw' (full transcript excerpt, expensive — only when summary or structured is insufficient)."
+    ),
     {
       id: z
         .string()

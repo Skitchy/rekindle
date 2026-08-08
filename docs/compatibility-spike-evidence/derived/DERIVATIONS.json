@@ -1,0 +1,85 @@
+{
+ "method": "PIL Image.crop on the withheld originals; crop excludes macOS menu bar, app sidebar (chat titles), and all desktop content; conversation pane and window title retained",
+ "derivations": [
+  {
+   "original_manifest_path": "desktop/CD-H-01/attempt1/chat-session-screenshot.png",
+   "original_sha256": "847e7878cf86615745b209a36803dffb4ee0ab183ce0bec5ffe7a87f735f155e",
+   "derived_file": "derived/CD-H-01__attempt1__chat-session-screenshot.cropped.png",
+   "derived_sha256": "ceaa847dc643398916058cbb4b19001f6211786246fcf28b082fc32f225404df",
+   "crop_box_px": [
+    425,
+    55,
+    2405,
+    1650
+   ],
+   "original_size_px": [
+    2880,
+    1864
+   ]
+  },
+  {
+   "original_manifest_path": "desktop/CD-H-01/attempt2/chat-session-screenshot.png",
+   "original_sha256": "30849988657b9e5c2abaab1a22df44c3e36895b0dc8ce512bca08609219771cc",
+   "derived_file": "derived/CD-H-01__attempt2__chat-session-screenshot.cropped.png",
+   "derived_sha256": "48746138bcb037a595a65b7f6db5370d8ea9e46e45fc05727a67134593ea1e6a",
+   "crop_box_px": [
+    425,
+    55,
+    2405,
+    1650
+   ],
+   "original_size_px": [
+    2880,
+    1864
+   ]
+  },
+  {
+   "original_manifest_path": "desktop/CD-M-01/attach-failure-toast-screenshot.png",
+   "original_sha256": "f86338e0115a6465fc9a4e51b21a2f14b8845401785c8f0f6d0ada364f1a8210",
+   "derived_file": "derived/CD-M-01__attach-failure-toast-screenshot.cropped.png",
+   "derived_sha256": "998d5348e235180360372edf49aa661510636854fb19a00fa564bce6bd0fd4b5",
+   "crop_box_px": [
+    425,
+    55,
+    2405,
+    1650
+   ],
+   "original_size_px": [
+    2880,
+    1864
+   ]
+  },
+  {
+   "original_manifest_path": "desktop/CD-M-01/attempt1-reply-screenshot.png",
+   "original_sha256": "e7326b4a7d43cd5bd5d0bca5c921d745fa32cc900b72c710576ffda8b3705ab2",
+   "derived_file": "derived/CD-M-01__attempt1-reply-screenshot.cropped.png",
+   "derived_sha256": "3a54b6480eb5050c136964d1a6a7cddc8f925c5529540538e430602ec1cd37d0",
+   "crop_box_px": [
+    425,
+    55,
+    2405,
+    1650
+   ],
+   "original_size_px": [
+    2880,
+    1864
+   ]
+  },
+  {
+   "original_manifest_path": "desktop/CD-M-01/attempt2-reply-screenshot.png",
+   "original_sha256": "1cd4821e53b26e4dba14e347be995bb6889a1b5a77957e1f8267d3aca9a9b7de",
+   "derived_file": "derived/CD-M-01__attempt2-reply-screenshot.cropped.png",
+   "derived_sha256": "54789f15bad4dbd91fe8ff7cc9bc5d2a388be18fccbcadc0cb7418e0b2764188",
+   "crop_box_px": [
+    425,
+    55,
+    2405,
+    1650
+   ],
+   "original_size_px": [
+    2880,
+    1864
+   ]
+  }
+ ]
+}

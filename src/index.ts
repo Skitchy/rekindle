@@ -1,40 +1,27 @@
 #!/usr/bin/env node
 
-import { join, dirname } from "node:path";
-import { homedir } from "node:os";
-import { existsSync } from "node:fs";
 import { RekindleStorage } from "./storage/sqlite.js";
+import { resolveStorageRoot } from "./storage/root.js";
 import { CaptureManager } from "./captures/index.js";
 import { startServer } from "./server.js";
 
-function findBaseDir(): string {
-  if (existsSync(join(process.cwd(), ".rekindle"))) {
-    return process.cwd();
-  }
-  if (existsSync(join(homedir(), ".rekindle"))) {
-    return homedir();
-  }
-  return process.cwd();
+const root = resolveStorageRoot();
+
+let storage: RekindleStorage;
+try {
+  storage = new RekindleStorage(root.dbPath);
+} catch (err) {
+  console.error(
+    `Rekindle: cannot create or open storage at ${root.dbPath}\n` +
+      `  (base directory: ${root.baseDir}, resolved via: ${root.baseSource})\n` +
+      `If this host spawns MCP servers in an unwritable directory, set ` +
+      `REKINDLE_BASE_DIR to a writable location, e.g. your home directory.`
+  );
+  console.error(err instanceof Error ? err.message : String(err));
+  process.exit(1);
 }
 
-function findDbPath(): string {
-  const localPath = join(process.cwd(), ".rekindle", "db", "memories.db");
-  if (existsSync(join(process.cwd(), ".rekindle"))) {
-    return localPath;
-  }
-
-  const globalPath = join(homedir(), ".rekindle", "db", "memories.db");
-  if (existsSync(join(homedir(), ".rekindle"))) {
-    return globalPath;
-  }
-
-  return localPath;
-}
-
-const dbPath = process.env.REKINDLE_DB_PATH || findDbPath();
-const storage = new RekindleStorage(dbPath);
-const baseDir = process.env.REKINDLE_BASE_DIR || findBaseDir();
-const captureManager = new CaptureManager(baseDir);
+const captureManager = new CaptureManager(root.baseDir);
 
 startServer(storage, captureManager).catch((err) => {
   console.error("Failed to start Rekindle server:", err);

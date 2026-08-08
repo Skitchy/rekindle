@@ -1,0 +1,11 @@
+{
+  "rekindle": {
+    "command": "node",
+    "args": [
+      "<WORKSPACE>/rekindle/dist/index.js"
+    ],
+    "env": {
+      "HOME": "/private/tmp/rk-gate1-desktop/attempt1/home"
+    }
+  }
+}

@@ -1,0 +1,5 @@
+2026-08-03T10:27:50Z PRE-CAPTURE sha256=3aae3a33dc95d8ad73e0686c430027426890d966dd45da5c171ca30f1cb5efd5 backup=<WORKSPACE>/rekindle-spike/runs-2026-08-03/CD-BACKUP/claude_desktop_config.pre.json
+2026-08-03T10:27:50Z CD-H-01 attempt 1: hooks config written sha256=fcc3c94abcf0e8bdbfc59649cb8297b5b77559ad4c17dd7878199d0ecf882868
+2026-08-03T10:45:02Z CD-M conf: rekindle mcpServer configured (dist sha256=3ab52fec7bcdfa8e686790c418b6aa342195cdbefff0e90a5bd7c9681aef1e26) config sha256=e3792bb63ed094830dbefb4dccc8635c2603f38fbe596ebd78cf2b08f108029c
+2026-08-03T10:47:41Z CD-M-01 cwd-wrapper config written sha256=890cb615cc17491d74e1c16d78be65f624cecbe34215953a42ff29bc7688b4d6
+2026-08-03T10:56:27Z RESTORE VERIFIED byte-identical sha256=3aae3a33dc95d8ad73e0686c430027426890d966dd45da5c171ca30f1cb5efd5

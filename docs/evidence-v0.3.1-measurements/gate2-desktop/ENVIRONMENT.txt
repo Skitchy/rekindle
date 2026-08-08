@@ -1,0 +1,6 @@
+# Environment record (gate-2 Desktop sentinel measurement)
+date_utc: 2026-08-08T19:25:49Z
+os: Darwin 25.5.0 arm64
+desktop_app: 1.24012.9
+gate2_build: branch gate2/tool-description-delivery @ 3e8f85c, dist sha256 68487b0ae70a4f1a0a8eab8cc8800e5e66d916a6f5b7767463569b6403012bbe
+constraint: server env HOME=/private/tmp/rk-gate2-desktop/home; probe driven in-app; config restore asserted byte-identical

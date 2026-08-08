@@ -1,0 +1,5 @@
+2026-08-06T22:40:10Z PRE-CAPTURE sha256=3aae3a33dc95d8ad73e0686c430027426890d966dd45da5c171ca30f1cb5efd5
+2026-08-06T22:40:11Z launch: dist=3ab52fec7bcdfa8e fixture_home=/private/tmp/rk-gate1-desktop/baseline/home log_offset=9190
+2026-08-06T22:40:52Z launch: dist=68487b0ae70a4f1a fixture_home=/private/tmp/rk-gate1-desktop/attempt1/home log_offset=12724
+2026-08-06T22:41:33Z launch: dist=68487b0ae70a4f1a fixture_home=/private/tmp/rk-gate1-desktop/attempt2/home log_offset=15557
+2026-08-06T22:42:14Z RESTORE VERIFIED byte-identical sha256=3aae3a33dc95d8ad73e0686c430027426890d966dd45da5c171ca30f1cb5efd5

@@ -1,0 +1,153 @@
+{
+  "schema": "spike-evidence-manifest/v1",
+  "date": "2026-08-03",
+  "measured_commit": "910fc08eb85f8b1d405c16a62b3436824cc8be70",
+  "client": "Claude Code 2.1.220",
+  "os": "macOS 26.5.2 arm64",
+  "probe_model": "claude-haiku-4-5-20251001",
+  "artifacts": {
+    "session-start-probe.mjs": {
+      "sha256": "7a3a1c8e7d1e366bf861ce84405a375ffd6b6fca29fa1ca4eb40739b686f4a8d",
+      "source": "branch script, unmodified"
+    },
+    "oversized-probe.mjs": {
+      "sha256": "896b96646f6bb67cddb141e840499dd49a97c798b05b177cf711f3b2a1b3de97",
+      "source": "CC-H-07 variant harness"
+    },
+    "rekindle-dist-index.js": {
+      "sha256": "3ab52fec7bcdfa8e686790c418b6aa342195cdbefff0e90a5bd7c9681aef1e26",
+      "source": "built from measured commit, used for CC-M-01"
+    },
+    "run-cases.sh": {
+      "sha256": "afff42ac091f318324d4efa554a14cda1635893cd3ed73a0e2401645da0a5d48"
+    },
+    "CC-H-01/attempt1/receipts.jsonl": {
+      "sha256": "7e04298bc3843ba69f26a85de789cab07f4cb2234d27ed70711f94f86f4a5548"
+    },
+    "CC-H-01/attempt1/session-output.json": {
+      "sha256": "63540840e5dbb6b3bcc0c8d57bcf5ba6702c4f14b0187f025036308c6ebfb73a"
+    },
+    "CC-H-01/attempt2/receipts.jsonl": {
+      "sha256": "34192430bec7b9953ff9150825045c4b4b262cc689e09fc1ad1ab93c6472519e"
+    },
+    "CC-H-01/attempt2/session-output.json": {
+      "sha256": "cc7235054003cad4324ee21c13accc3512bf8fa772290da84809792fb069262a"
+    },
+    "CC-H-02/attempt1/receipts.jsonl": {
+      "sha256": "eadc419a25b0a62e180a1c51a753a553681933f34919ba097107ec95608c7e1f"
+    },
+    "CC-H-02/attempt1/resume-output.json": {
+      "sha256": "cd49705b0535373a87aacd62515d5dbd9d852761510c7fa202eda95dc8198ab9"
+    },
+    "CC-H-02/attempt1/session-output.json": {
+      "sha256": "4df2366114b10881ffc0e689dd25e899653e8130144613d0d0b0f5f1f6e84f49"
+    },
+    "CC-H-02/attempt2/receipts.jsonl": {
+      "sha256": "64d12dca00522b9475a25ac8d74e04f03c0dd79588ab42fd37ac2a321fdb2fdb"
+    },
+    "CC-H-02/attempt2/resume-output.json": {
+      "sha256": "58d10c5410d5e4d5cc9fb6fd3ec5fdcef48bbe2a44ffdfb9f0cdebf572afbf24"
+    },
+    "CC-H-02/attempt2/session-output.json": {
+      "sha256": "2a5268046dd8ab410ba7647a5939958a020c8e6de513c767beafb412b235431f"
+    },
+    "CC-H-06/attempt1/receipts.jsonl": {
+      "sha256": "cdfde39c1bcf829eebec3f29beb53f67b99155b60d36cd6d200669a4d891343e"
+    },
+    "CC-H-06/attempt1/session-output.json": {
+      "sha256": "2a1eb1cabc3f8c7fa5f03b2a37428f9cc44080d17211482f0d23b7941e5410e7"
+    },
+    "CC-H-06/attempt2/receipts.jsonl": {
+      "sha256": "9095a58d4b3c70b96370a0d5fe59eee01df2a679033d83b9849064d28a481b48"
+    },
+    "CC-H-06/attempt2/session-output.json": {
+      "sha256": "8863183110431ab414c12a3913d1ca41160bea81751c60b0d5482e69473f5719"
+    },
+    "CC-H-07/attempt1/receipts.jsonl": {
+      "sha256": "b9dfe8b5b7d2631aadeae2613b936668d4580f96dd6c027c84740fb98fb91cdc"
+    },
+    "CC-H-07/attempt1/session-output.json": {
+      "sha256": "e049b8cf1204f6dcbde4c2b3a5c0db9cb038c36891d25a0d8a5d38a10c6df09b"
+    },
+    "CC-H-07/attempt2/receipts.jsonl": {
+      "sha256": "a5a2e818251a81de223ddad8567c36896f1b99139698c636a687fecce5d6a820"
+    },
+    "CC-H-07/attempt2/session-output.json": {
+      "sha256": "c891c3b19a41fff398bcae92bd915f6ef2b6ef681479de63bebc59d5d5674d30"
+    },
+    "CC-M-01/attempt1/session-output.json": {
+      "sha256": "f8d9ff9634c9d87a034267e3c8f31381b8fe2b110bd7f41a52822c2ebb554762"
+    },
+    "CC-M-01/attempt2/session-output.json": {
+      "sha256": "e0a9404dad4cf0aa4ff012d51cdcafc678209592e7b52b8e2847b73b33170048"
+    },
+    "LEAK-CONTROL/session-output.json": {
+      "sha256": "d8b424f4b44de747ba92926417f1b660bf376a5b13bfbcd99aa43b87dec92b54"
+    },
+    "CC-H-07/attempt1/externalized-additionalContext.txt": {
+      "sha256": "489fef74b58db2921ae8ee2a93f537173a92ee79f29f143d0029117138120fd0",
+      "bytes": 15065,
+      "origin": "host session storage tool-results/, copied for preservation",
+      "note": "complete packet incl. trailing canary; proves externalization, not destruction"
+    },
+    "CC-H-07/attempt2/externalized-additionalContext.txt": {
+      "sha256": "420db0aaedb42407c995f680d053b31dc5df7e5360828bb693aca94c773a2733",
+      "bytes": 15065,
+      "origin": "host session storage tool-results/, copied for preservation",
+      "note": "complete packet incl. trailing canary; proves externalization, not destruction"
+    },
+    "desktop/desktop-cases.sh": {
+      "sha256": "0398de3ba264a61b4acbce223fbbbd9f6a9ebf4e29c40d20f3b1c67fc5789e66",
+      "source": "Desktop runner with capture-before-launch / verify-after-teardown"
+    },
+    "desktop/CD-capture-log.txt": {
+      "sha256": "af4127f482b256dd26218274bd66d09216ea784223eaf7d0143d9858ab01a97a",
+      "source": "timestamped capture/restore log incl. byte-identical restore verification"
+    },
+    "desktop/CD-BACKUP/claude_desktop_config.pre.json": {
+      "sha256": "3aae3a33dc95d8ad73e0686c430027426890d966dd45da5c171ca30f1cb5efd5",
+      "source": "pre-run live config backup (local only, hash binds it)"
+    },
+    "desktop/CD-H-01/attempt1/config-used.json": {
+      "sha256": "fcc3c94abcf0e8bdbfc59649cb8297b5b77559ad4c17dd7878199d0ecf882868"
+    },
+    "desktop/CD-H-01/attempt1/chat-session-screenshot.png": {
+      "sha256": "847e7878cf86615745b209a36803dffb4ee0ab183ce0bec5ffe7a87f735f155e"
+    },
+    "desktop/CD-H-01/attempt2/config-used.json": {
+      "sha256": "7e5efc52a4254163cfcce454f3146c38716b9dda652bf1c4554efda4a49e06d9"
+    },
+    "desktop/CD-H-01/attempt2/chat-session-screenshot.png": {
+      "sha256": "30849988657b9e5c2abaab1a22df44c3e36895b0dc8ce512bca08609219771cc"
+    },
+    "desktop/CD-M-01/mcp-log-as-shipped-attach-failure.log": {
+      "sha256": "33357520f73759d0d9556efcc0ce44ca4558f111629bb2fc323f87fb281c300e",
+      "source": "ENOENT mkdir /.rekindle/db crash, attach failure"
+    },
+    "desktop/CD-M-01/attach-failure-toast-screenshot.png": {
+      "sha256": "f86338e0115a6465fc9a4e51b21a2f14b8845401785c8f0f6d0ada364f1a8210"
+    },
+    "desktop/CD-M-01/config-used-cwd-wrapper.json": {
+      "sha256": "890cb615cc17491d74e1c16d78be65f624cecbe34215953a42ff29bc7688b4d6",
+      "source": "documented deviation: bash -c cd wrapper"
+    },
+    "desktop/CD-M-01/attempt1-reply-screenshot.png": {
+      "sha256": "e7326b4a7d43cd5bd5d0bca5c921d745fa32cc900b72c710576ffda8b3705ab2",
+      "source": "model quotes deferred tool listing, no instructions"
+    },
+    "desktop/CD-M-01/attempt2-reply-screenshot.png": {
+      "sha256": "1cd4821e53b26e4dba14e347be995bb6889a1b5a77957e1f8267d3aca9a9b7de",
+      "source": "reproduction"
+    },
+    "desktop/CD-M-02/mcp-log-reconnect.log": {
+      "sha256": "0741772d599ae0949514ee108f1525d12de9788fb722464355b6e780beb635a7",
+      "source": "clean re-handshake after app restart"
+    }
+  },
+  "desktop_pass": {
+    "date": "2026-08-03",
+    "client": "Claude Desktop 1.24012.9",
+    "chat_model": "Fable 5 (High)",
+    "artifact_count_total": 40
+  }
+}

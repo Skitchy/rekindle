@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { composeInstructions } from "./delivery/guidance.js";
 import { RekindleStorage } from "./storage/sqlite.js";
 import { CaptureManager } from "./captures/index.js";
 import { registerStoreMemory } from "./tools/store.js";
@@ -14,10 +15,18 @@ import { registerReadCapture } from "./tools/read-capture.js";
 import { registerCaptureNow } from "./tools/capture-now.js";
 
 export function createServer(storage: RekindleStorage, captureManager: CaptureManager): McpServer {
-  const server = new McpServer({
-    name: "rekindle",
-    version: "0.3.0",
-  });
+  const server = new McpServer(
+    {
+      name: "rekindle",
+      version: "0.3.0",
+    },
+    {
+      // Composed from the same fragments that ride the tool descriptions —
+      // Desktop never shows the model this field (CD-M-01), so it must never
+      // carry guidance the descriptions do not.
+      instructions: composeInstructions(),
+    }
+  );
 
   registerStoreMemory(server, storage);
   registerSearchMemory(server, storage);

@@ -1,0 +1,32 @@
+{
+  "derivations": [
+    {
+      "original": "view-07-reply.png",
+      "original_sha256": "a4619f9e47f35a8d97e1da2421370214cb71f0e7b9bd57ea563cd7b97bef6d94",
+      "derivative": "view-07-reply.cropped.png",
+      "derivative_sha256": "5fc45a61daadefc3eb02830d748a9c958077f349b1edd53f16bc7c27abf5213e",
+      "transform": "crop x>=200 (sidebar with personal chat titles removed); content pane verbatim"
+    },
+    {
+      "original": "view-12-attempt2-zoomout.png",
+      "original_sha256": "9bb9517f634ffabb6edcb4709a08353ddb7aeb7e349a6037bc86022d0ee6a440",
+      "derivative": "view-12-attempt2-full.cropped.png",
+      "derivative_sha256": "48cc412e01aeb9900b006287fa2e2320374810c457a16e663dac346b4f6ab0de",
+      "transform": "crop x>=152 (sidebar removed); content pane verbatim"
+    },
+    {
+      "original": "view-14-attempt2-postload.png",
+      "original_sha256": "ce604ac4cadcab491635d4a69a51cbc97b2ad65ceb84815e3c3f89b84e90aa51",
+      "derivative": "view-14-attempt2-postload.cropped.png",
+      "derivative_sha256": "26569ec012aeb61cc4fb94e0ac921eb8a9996fb8147a27e76449369f0ce95a17",
+      "transform": "crop x>=152 (sidebar removed); content pane verbatim"
+    },
+    {
+      "original": "view-08-postload.png",
+      "original_sha256": "855c3fb31b6be1760486fafb88865fb125d41b14e5be3d17e3310960187535f2",
+      "derivative": "view-08-attempt1-postload.png",
+      "derivative_sha256": "855c3fb31b6be1760486fafb88865fb125d41b14e5be3d17e3310960187535f2",
+      "transform": "verbatim copy (sidebar was collapsed; no personal content in frame)"
+    }
+  ]
+}

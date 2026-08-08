@@ -1,0 +1,11 @@
+{
+  "env": {
+    "REKINDLE_BASE_DIR": "/private/tmp/rk-gate4/home",
+    "REKINDLE_RECEIPT_PATH": "/private/tmp/rk-gate4/receipts.jsonl"
+  },
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [ { "type": "command", "command": "node <WORKSPACE>/rekindle/dist/init/cli.js session-start", "timeout": 30 } ] }
+    ]
+  }
+}

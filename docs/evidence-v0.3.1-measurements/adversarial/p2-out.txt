@@ -1,0 +1,5 @@
+PASS fragment: call boot_report first thing every session
+PASS fragment: call end_session at the end of every substantive session
+PASS fragment: call list_captures then read_capture
+PASS fragment: read recovered captures before relying on the latest checkpoint
+PASS instructions subset of descriptions

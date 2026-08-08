@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { CaptureManager } from "../captures/index.js";
+import { withGuidance } from "../delivery/guidance.js";
 
 export function registerListCaptures(
   server: McpServer,
@@ -8,7 +9,10 @@ export function registerListCaptures(
 ): void {
   server.tool(
     "list_captures",
-    "List PreCompact captures for the current or recent sessions. PreCompact captures preserve context that would otherwise be lost during mid-session compaction. If a PreCompact capture exists for the current session and you need context from earlier in the session, call this tool then read_capture before answering. Before calling end_session, always check for unreviewed captures.",
+    withGuidance(
+      "list_captures",
+      "List PreCompact captures for the current or recent sessions. PreCompact captures preserve context that would otherwise be lost during mid-session compaction."
+    ),
     {
       session_id: z
         .string()

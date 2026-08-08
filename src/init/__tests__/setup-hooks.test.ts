@@ -85,16 +85,24 @@ describe("setupHooks", () => {
     expect(config.hooks.PreCompact[2].matcher).toBe("manual");
   });
 
-  it("handles corrupted settings file gracefully", () => {
+  it("refuses to overwrite a corrupted settings file", () => {
     const claudeDir = join(tmpDir, ".claude");
     mkdirSync(claudeDir, { recursive: true });
-    writeFileSync(join(claudeDir, "settings.local.json"), "not json {{{");
+    const settingsPath = join(claudeDir, "settings.local.json");
+    const corrupted = "not json {{{";
+    writeFileSync(settingsPath, corrupted);
 
-    setupHooks(tmpDir);
+    expect(() => setupHooks(tmpDir)).toThrow(/Refusing to modify/);
+    expect(readFileSync(settingsPath, "utf-8")).toBe(corrupted);
+  });
 
-    const config = JSON.parse(readFileSync(join(claudeDir, "settings.local.json"), "utf-8"));
-    expect(config.hooks.PreCompact).toHaveLength(2);
-    expect(config.hooks.PreCompact[0].matcher).toBe("auto");
-    expect(config.hooks.PreCompact[1].matcher).toBe("manual");
+  it("refuses to overwrite settings whose root is not an object", () => {
+    const claudeDir = join(tmpDir, ".claude");
+    mkdirSync(claudeDir, { recursive: true });
+    const settingsPath = join(claudeDir, "settings.local.json");
+    writeFileSync(settingsPath, "[]");
+
+    expect(() => setupHooks(tmpDir)).toThrow(/settings root must be a JSON object/);
+    expect(readFileSync(settingsPath, "utf-8")).toBe("[]");
   });
 });

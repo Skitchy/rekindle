@@ -3,7 +3,7 @@
 # Rekindle
 
 [![npm](https://img.shields.io/npm/v/rekindle)](https://www.npmjs.com/package/rekindle)
-[![tests](https://img.shields.io/badge/tests-101%20passing-brightgreen)](#tests)
+[![tests](https://img.shields.io/badge/tests-102%20passing-brightgreen)](#tests)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Glama score](https://glama.ai/mcp/servers/Skitchy/rekindle/badges/score.svg)](https://glama.ai/mcp/servers/Skitchy/rekindle)
 
@@ -26,6 +26,8 @@ Rekindle is an MCP continuity engine that solves **session orientation**, not ju
 **v0.3.0 — "Survive the Long Middle"** — PreCompact capture system, open loops, review tracking. [Release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.3.0)
 
 ## Quick Start
+
+Requires Node.js 20 or newer.
 
 ```bash
 npx rekindle init
@@ -273,7 +275,17 @@ The hook receives session context on stdin (session_id, transcript_path, cwd, ho
 |----------|---------|-------------|
 | `REKINDLE_PRECOMPACT_MAX_MESSAGES` | `80` | Max messages to capture |
 | `REKINDLE_PRECOMPACT_MAX_CHARS` | `120000` | Max characters to capture |
-| `REKINDLE_BASE_DIR` | Auto-detected | Base directory for `.rekindle/` |
+| `REKINDLE_BASE_DIR` | Resolved (see below) | Base directory for `.rekindle/` |
+
+**Storage root resolution.** All Rekindle entry points (server, PreCompact hook) resolve the directory holding `.rekindle/` through one rule, in order:
+
+1. `REKINDLE_BASE_DIR`, if set — explicit always wins
+2. Derived from `REKINDLE_DB_PATH`, when it points at a canonical `<base>/.rekindle/db/` layout
+3. An existing `.rekindle/` in the current working directory (never when cwd is the filesystem root)
+4. An existing `.rekindle/` in your home directory
+5. Otherwise: your home directory — never the spawn point
+
+Rules 3 and 5 exist because some hosts (e.g. Claude Desktop) spawn MCP servers at `cwd=/`; a spawn point is not a storage location. If storage cannot be created, the server exits with a message naming the fix instead of a stack trace.
 
 </details>
 
@@ -300,6 +312,29 @@ The hook receives session context on stdin (session_id, transcript_path, cwd, ho
 | Claude Desktop | stdio | Compatible (same MCP config format) |
 | Cursor | stdio | Compatible (same MCP config format) |
 | Any MCP stdio client | stdio | Compatible |
+
+### Cursor: session-start orientation (opt-in)
+
+Cursor's hook system can deliver the budgeted orientation packet at session
+start, measured working in the v0.3.1 compatibility spike. Setup is manual
+and opt-in — Rekindle never installs hooks without being asked. Add to
+`.cursor/hooks.json` in your project:
+
+```json
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [ { "command": "rekindle session-start --client cursor" } ]
+  }
+}
+```
+
+**Privacy:** Cursor's hook payload includes your account email and workspace
+paths. The adapter treats that payload as personal by default: it extracts
+only the session ID and workspace root (used in-process for storage
+resolution), and neither the raw payload, the email, nor any path is ever
+written to receipts or any other artifact. Background agents are bypassed by
+default (truthfully receipted); opt in with `REKINDLE_ORIENT_BACKGROUND_AGENTS=1`.
 
 <details>
 <summary><strong>Architecture</strong></summary>

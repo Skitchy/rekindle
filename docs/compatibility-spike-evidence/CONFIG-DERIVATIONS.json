@@ -1,0 +1,70 @@
+{
+  "purpose": "Provenance chain for personal-context redaction of textual evidence artifacts. Same pattern as DERIVATIONS.json (screenshot derivatives). Each original is hash-bound in the evidence manifest; each derivative is chained here by dual hash.",
+  "derivation_date": "2026-08-05",
+  "records": [
+    {
+      "original_path": "desktop/CD-H-01/attempt1/config-used.json",
+      "original_sha256": "fcc3c94abcf0e8bdbfc59649cb8297b5b77559ad4c17dd7878199d0ecf882868",
+      "original_status": "withheld (contains personal environment content); retained privately, producible under access control",
+      "derived_path": "desktop/CD-H-01/attempt1/config-used.redacted.json",
+      "derived_sha256": "3f33ea95b7fcbc32dc3d8ae4dc758f79e3fe17bd6c4d83fdbbee0748c5663342",
+      "transformation": "Minimal projection: mcpServers + hooks blocks only (hooks is the channel under test); absolute paths generalized. All personal preference keys removed."
+    },
+    {
+      "original_path": "desktop/CD-H-01/attempt2/config-used.json",
+      "original_sha256": "7e5efc52a4254163cfcce454f3146c38716b9dda652bf1c4554efda4a49e06d9",
+      "original_status": "withheld (contains personal environment content); retained privately, producible under access control",
+      "derived_path": "desktop/CD-H-01/attempt2/config-used.redacted.json",
+      "derived_sha256": "d8e397af03b5b032f21d0aa967086f0c78b33c87b76f2e9898ae0a144df7de02",
+      "transformation": "Minimal projection: mcpServers block only (attempt 2 tested hook absence at top level); personal preference keys removed."
+    },
+    {
+      "original_path": "desktop/CD-M-01/config-used-cwd-wrapper.json",
+      "original_sha256": "890cb615cc17491d74e1c16d78be65f624cecbe34215953a42ff29bc7688b4d6",
+      "original_status": "withheld (contains personal environment content); retained privately, producible under access control",
+      "derived_path": "desktop/CD-M-01/config-used-cwd-wrapper.redacted.json",
+      "derived_sha256": "39bcf95266aebdc1b611e547c96fe6aafa68db86c31293eb4b7f24087360fad0",
+      "transformation": "Minimal projection: mcpServers block only (the key the measurement exercises); absolute paths generalized to <WORKSPACE>/<HOME>. All personal preference keys removed."
+    },
+    {
+      "original_path": "desktop/CD-M-01/mcp-log-as-shipped-attach-failure.log",
+      "original_sha256": "33357520f73759d0d9556efcc0ce44ca4558f111629bb2fc323f87fb281c300e",
+      "original_status": "withheld (contains personal environment content); retained privately, producible under access control",
+      "derived_path": "desktop/CD-M-01/mcp-log-as-shipped-attach-failure.redacted.log",
+      "derived_sha256": "36875b3109b9cb170aff1612d4e12ed756f50d361db41eef02f67e66bfbc6006",
+      "transformation": "Paths generalized to <WORKSPACE>/<HOME>; environment PATH dump collapsed to a counted redaction marker. Error lines, stack trace, and timestamps unmodified."
+    },
+    {
+      "original_path": "desktop/CD-M-02/mcp-log-reconnect.log",
+      "original_sha256": "0741772d599ae0949514ee108f1525d12de9788fb722464355b6e780beb635a7",
+      "original_status": "withheld (contains personal environment content); retained privately, producible under access control",
+      "derived_path": "desktop/CD-M-02/mcp-log-reconnect.redacted.log",
+      "derived_sha256": "6a23ee122361024c1ede34e953bb69bd71232a322386ba57f2c6290b7ce38be4",
+      "transformation": "Paths generalized to <WORKSPACE>/<HOME>; environment PATH dump collapsed to a counted redaction marker. Reconnect sequence and timestamps unmodified."
+    },
+    {
+      "original_path": "desktop/CD-capture-log.txt",
+      "original_sha256": "af4127f482b256dd26218274bd66d09216ea784223eaf7d0143d9858ab01a97a",
+      "original_status": "withheld (contains personal environment content); retained privately, producible under access control",
+      "derived_path": "desktop/CD-capture-log.redacted.txt",
+      "derived_sha256": "34d79669f6c1f9390dc68f7740631a739c2444d0aef9eeb2b8e198b9661b44d5",
+      "transformation": "Backup path generalized to <WORKSPACE>. Hashes and timestamps unmodified."
+    },
+    {
+      "original_path": "desktop/desktop-cases.sh",
+      "original_sha256": "0398de3ba264a61b4acbce223fbbbd9f6a9ebf4e29c40d20f3b1c67fc5789e66",
+      "original_status": "withheld (contains personal environment content); retained privately, producible under access control",
+      "derived_path": "desktop/desktop-cases.redacted.sh",
+      "derived_sha256": "461d6c5ae68b23854ee08eab5da7e751dd2bd52c625bc53cd4b39154e9b86d5b",
+      "transformation": "Absolute workspace/home paths generalized to <WORKSPACE>/<HOME>. Logic unmodified."
+    },
+    {
+      "original_path": "run-cases.sh",
+      "original_sha256": "afff42ac091f318324d4efa554a14cda1635893cd3ed73a0e2401645da0a5d48",
+      "original_status": "withheld (contains personal environment content); retained privately, producible under access control",
+      "derived_path": "run-cases.redacted.sh",
+      "derived_sha256": "1b78320217035b4582028b68f77d29434cff3dd900a6858a51a77fc602f90eb8",
+      "transformation": "Absolute workspace/home paths generalized to <WORKSPACE>/<HOME>. Logic unmodified."
+    }
+  ]
+}
