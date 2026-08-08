@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { composeInstructions } from "./delivery/guidance.js";
 import { RekindleStorage } from "./storage/sqlite.js";
 import { CaptureManager } from "./captures/index.js";
 import { registerStoreMemory } from "./tools/store.js";
@@ -20,8 +21,10 @@ export function createServer(storage: RekindleStorage, captureManager: CaptureMa
       version: "0.3.0",
     },
     {
-      instructions:
-        "Rekindle is a local continuity server. At session start, call boot_report before substantive work to inspect identity, project-scoped memory state, the latest checkpoint, open loops, and available PreCompact captures. If captures are listed, use list_captures and read_capture to recover context before relying on the checkpoint. At session end, call end_session with the checkpoint, unresolved open loops, constraints, warnings, and next-session focus. Orientation scores are structural checks, not guarantees that every relevant context item was loaded.",
+      // Composed from the same fragments that ride the tool descriptions —
+      // Desktop never shows the model this field (CD-M-01), so it must never
+      // carry guidance the descriptions do not.
+      instructions: composeInstructions(),
     }
   );
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { RekindleStorage } from "../storage/sqlite.js";
 import { CaptureManager } from "../captures/index.js";
 import { OrientationService, OrientationRenderer } from "../orientation/index.js";
+import { withGuidance } from "../delivery/guidance.js";
 
 export function registerBootReport(
   server: McpServer,
@@ -13,7 +14,10 @@ export function registerBootReport(
 
   server.tool(
     "boot_report",
-    "Generate a session orientation report. Read-only — does not modify any stored data. Reads the identity document from disk, scans the memory database for statistics and the latest checkpoint, finds the most recent transcript file, detects structural gaps (missing identity, stale memories, no checkpoint, etc.), and calculates a 0-100 orientation score across 6 criteria. Also surfaces open loops from prior sessions and any PreCompact captures that preserve context from compacted sessions. If PreCompact captures exist, call list_captures and read_capture to recover pre-compaction context before proceeding with work. Call this first thing every session to establish context before doing any work.",
+    withGuidance(
+      "boot_report",
+      "Generate a session orientation report. Read-only — does not modify any stored data. Reads the identity document from disk, scans the memory database for statistics and the latest checkpoint, finds the most recent transcript file, detects structural gaps (missing identity, stale memories, no checkpoint, etc.), and calculates a 0-100 orientation score across 6 criteria. Also surfaces open loops from prior sessions and any PreCompact captures that preserve context from compacted sessions."
+    ),
     {
       identity_path: z
         .string()
