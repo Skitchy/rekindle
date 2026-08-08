@@ -1,0 +1,55 @@
+## Identity
+Loaded from /private/tmp/rk-gate3-o5/a-2/.rekindle/identity.md
+
+# Synthetic Orientation Identity (gate-3 O5 fixture, condition A)
+RK_O5_LEAD_a921a1bc
+Synthetic continuity line 1: this text exists only to give the packet realistic bulk. No real project or person is described here.
+Synthetic continuity line 2: this text exists only to give the packet realistic bulk. No real project or person is described here.
+Synthetic continuity line 3: this text exists only to give the packet realistic bulk. No real project or person is described here.
+Synthetic continuity line 4: this text exists only to give the packet realistic bulk. No real project or person is described here.
+Synthetic continuity line 5: this text exists only to give the packet realistic bulk. No real project or person is described here.
+Synthetic continuity line 6: this text exists only to give the packet realistic bulk. No real project or person is described here.
+Synthetic continuity line 7: this text exists only to give the packet realistic bulk. No real project or person is described here.
+Synthetic continuity line 8: this text exists only to give the packet realistic bulk. No real project or person is described here.
+Synthetic continuity line 9: this text exists only to give the packet realistic bulk. No real project or person is described here.
+Synthetic continuity line 10: this text exists only to give the packet realistic bulk. No real project or person is described here.
+Synthetic continuity line 11: this text exists only to give the packet realistic bulk. No real project or person is described here.
+Synthetic continuity line 12: this text exists only to give the packet realistic bulk. No real project or person is described here.
+RK_O5_TAIL_a921a1bc
+
+
+## Last Checkpoint
+None found
+
+## Gaps Detected
+- [warning] memories_empty: No memories stored yet. Start storing memories during your session.
+- [info] category_empty_preference: No preference memories stored
+- [info] category_empty_lesson: No lesson memories stored
+- [info] category_empty_context: No context memories stored
+- [info] category_empty_relationship: No relationship memories stored
+- [warning] checkpoint_missing: No checkpoint found. Use end_session to capture session state.
+- [info] transcript_missing: No session transcripts found. Configure the session capture hook for richer orientation.
+
+## Orientation Score
+20/100
+
++20  Identity document loaded
+ ✗  Recent checkpoint exists (20pts)
+ ✗  Session transcript found (20pts)
+ ✗  Recent memories exist (last 7 days) (20pts)
+ ✗  Relationship/preference memories populated (10pts)
+ ✗  Project-scoped memories found (10pts)
+
+This score is a structural checklist, not a guarantee that all relevant context was loaded.
+
+## Memories
+0 total (0 in last 7 days)
+
+By category:
+  (none)
+
+By project:
+  (none)
+
+## Last Session Transcript
+No transcripts found in transcript directory

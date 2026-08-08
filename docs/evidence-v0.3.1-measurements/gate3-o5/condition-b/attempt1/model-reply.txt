@@ -1,0 +1,5 @@
+RK_O5_LEAD_b3e9478c
+
+MARKER: [rekindle: section truncated to fit the hook output budget]
+
+TLINE: Fallback when no journal is available: Read agent-<id>.jsonl files in the transcript directory and hand-author a continuation script.

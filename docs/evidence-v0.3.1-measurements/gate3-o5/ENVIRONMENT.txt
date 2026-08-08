@@ -1,0 +1,8 @@
+# Environment record (gate-3 O5 live-host measurement)
+date_utc: 2026-08-08T19:21:43Z
+os: Darwin 25.5.0 arm64
+claude_code: 2.1.226 (Claude Code)
+model: claude-haiku-4-5-20251001
+adapter_dist_sha256: a50ad961c0830b3d111b085f9135c6cd1db64340342d654c8d4ccc7635e4615d
+branch: gate2/tool-description-delivery @ 3e8f85c
+controls: CC_ANCHOR_BYPASS_ROLE_SESSION=1, --setting-sources project, synthetic fixture identity, fixture base under /private/tmp/rk-gate3-o5

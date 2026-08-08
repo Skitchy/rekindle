@@ -1,0 +1,76 @@
+## Identity
+Loaded from /private/tmp/rk-gate3-o5/b-2/.rekindle/identity.md
+
+# Synthetic Orientation Identity (gate-3 O5 fixture, condition B)
+RK_O5_LEAD_e536b6fe
+Padding line 1: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 2: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 3: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 4: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 5: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 6: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 7: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 8: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 9: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 10: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 11: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 12: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 13: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 14: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 15: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 16: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 17: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 18: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 19: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 20: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 21: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 22: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 23: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 24: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 25: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 26: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 27: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 28: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 29: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 30: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 31: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 32: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 33: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 34: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 35: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 36: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 37: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 38: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 39: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 40: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 41: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 42: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 43: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 44: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 45: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 46: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 47: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 48: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 49: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 50: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 51: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 52: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 53: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 54: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 55: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 56: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 57: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 58: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 59: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 60: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 61: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 62: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 63: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 64: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 65: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 66: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 67: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 68: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 69: eighty-odd bytes of synthetic filler so the identity overflows the eight-kilobyte hook budget.
+Padding line 70: eighty-odd bytes of synthetic filler so th
+[rekindle: section truncated to fit the hook output budget]
