@@ -3,6 +3,7 @@
 import { homedir } from "node:os";
 import { scaffold } from "./scaffold.js";
 import { setupHooks } from "./setup-hooks.js";
+import { setupDelivery } from "./setup-delivery.js";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -10,6 +11,7 @@ const command = args[0];
 if (command === "init") {
   const useGlobal = args.includes("--global");
   const withHooks = args.includes("--with-hooks");
+  const withDelivery = args.includes("--with-delivery");
   const targetDir = useGlobal ? homedir() : process.cwd();
 
   console.log(
@@ -21,10 +23,17 @@ if (command === "init") {
   if (withHooks) {
     setupHooks(targetDir);
   }
+  if (withDelivery) {
+    setupDelivery(targetDir);
+  }
 } else if (command === "setup-hooks") {
   const useGlobal = args.includes("--global");
   const targetDir = useGlobal ? homedir() : process.cwd();
   setupHooks(targetDir);
+} else if (command === "setup-delivery") {
+  const useGlobal = args.includes("--global");
+  const targetDir = useGlobal ? homedir() : process.cwd();
+  setupDelivery(targetDir);
 } else if (command === "session-start") {
   const clientFlag = args.indexOf("--client");
   const client = clientFlag !== -1 ? args[clientFlag + 1] : "claude-code";
@@ -44,8 +53,12 @@ if (command === "init") {
   console.log("Usage:");
   console.log("  rekindle init                Set up Rekindle in current directory");
   console.log("  rekindle init --global       Set up Rekindle in home directory");
-  console.log("  rekindle init --with-hooks   Set up Rekindle and configure PreCompact hook");
-  console.log("  rekindle setup-hooks         Configure PreCompact hook (standalone)");
+  console.log("  rekindle init --with-hooks   Set up Rekindle and configure PreCompact capture hook");
+  console.log("  rekindle init --with-delivery");
+  console.log("                               Set up Rekindle and configure SessionStart delivery hook");
+  console.log("                               (orientation packet at startup/resume/clear/compact; opt-in)");
+  console.log("  rekindle setup-hooks         Configure PreCompact capture hook (standalone)");
+  console.log("  rekindle setup-delivery      Configure SessionStart delivery hook (standalone)");
   console.log("  rekindle session-start       Emit budgeted orientation packet (SessionStart hook)");
   console.log("  rekindle session-start --client cursor");
   console.log("                               Same, in Cursor's hook response shape (privacy-safe: stdin email/paths never persisted)");

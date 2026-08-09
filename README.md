@@ -3,7 +3,7 @@
 # Rekindle
 
 [![npm](https://img.shields.io/npm/v/rekindle)](https://www.npmjs.com/package/rekindle)
-[![tests](https://img.shields.io/badge/tests-102%20passing-brightgreen)](#tests)
+[![tests](https://img.shields.io/badge/tests-147%20passing-brightgreen)](#tests)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Glama score](https://glama.ai/mcp/servers/Skitchy/rekindle/badges/score.svg)](https://glama.ai/mcp/servers/Skitchy/rekindle)
 
@@ -23,7 +23,7 @@ npx rekindle init
 
 Rekindle is an MCP continuity engine that solves **session orientation**, not just storage. Orient at session start, capture at session end, survive mid-session compaction. All local, all SQLite, zero API keys.
 
-**v0.3.0 — "Survive the Long Middle"** — PreCompact capture system, open loops, review tracking. [Release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.3.0)
+**v0.3.1 — "Five Measured Gates"** — session-start orientation delivery for Claude Code, budgeted packets with truthful receipts, Desktop-safe storage, Cursor adapter with structural privacy. Every claim measured. [Release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.3.1)
 
 ## Quick Start
 
@@ -54,6 +54,13 @@ Enable PreCompact protection (captures context before mid-session compaction):
 ```bash
 npx rekindle setup-hooks
 ```
+
+Enable session-start orientation delivery — the budgeted orientation packet arrives automatically at startup, resume, `/clear`, and `/compact`, so the model re-orients at every context boundary without being asked:
+```bash
+npx rekindle setup-delivery
+```
+
+Both hooks are opt-in; plain `init` never installs either. `npx rekindle init --with-hooks --with-delivery` does everything in one line.
 </details>
 
 <details>
@@ -199,15 +206,17 @@ A static file is passive. Your AI reads it, but it can't search it, rank it, tra
 
 ---
 
-## v0.3.0 Highlights
+## v0.3.1 Highlights
 
-- **10 MCP tools** — added `list_captures`, `read_capture`, `capture_now`
-- **PreCompact capture system** — automatic context preservation before mid-session compaction
-- **Open loops in boot_report** — surfaces unresolved tasks from prior sessions
-- **Review tracking** — captures marked reviewed after `read_capture`; `end_session` warns if unreviewed
-- **Hook setup** — `npx rekindle setup-hooks` configures Claude Code PreCompact hook
-- **Auto-discovery** — `capture_now` discovers session transcript without manual paths
-- **101 automated tests** — unit, integration, capture manager, hook setup
+- **Session-start delivery** — `rekindle session-start` emits a budgeted orientation packet via the SessionStart hook at startup, resume, `/clear`, and `/compact`; `setup-delivery` installs it opt-in
+- **Budgeted packets, truthful receipts** — packets cap at 8,000 valid UTF-8 bytes with an in-packet truncation marker; receipts attest emission only and never claim model visibility
+- **Desktop-safe storage** — storage root never derives from the spawn point (Claude Desktop spawns MCP servers at `/`); explicit resolution order, fail-loud
+- **Dual-channel guidance** — workflow guidance rides both tool descriptions and MCP instructions, drift structurally impossible
+- **Cursor adapter** — `session-start --client cursor` with whitelist stdin parsing; email and workspace paths never reach receipts
+- **Measured, not assumed** — every claim above is backed by a published measurement ([evidence](docs/evidence-v0.3.1-measurements), [spike results](docs/compatibility-spike-results.md))
+- **147 automated tests**
+
+v0.3.0 ("Survive the Long Middle") added the PreCompact capture system, open loops, and review tracking — [v0.3.0 release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.3.0)
 
 ---
 
@@ -217,8 +226,12 @@ A static file is passive. Your AI reads it, but it can't search it, rank it, tra
 |---------|-------------|
 | `npx rekindle init` | Set up `.rekindle/` in current directory |
 | `npx rekindle init --global` | Set up in home directory |
-| `npx rekindle init --with-hooks` | Init + configure PreCompact hook |
-| `npx rekindle setup-hooks` | Configure PreCompact hook (standalone) |
+| `npx rekindle init --with-hooks` | Init + configure PreCompact capture hook |
+| `npx rekindle init --with-delivery` | Init + configure SessionStart delivery hook |
+| `npx rekindle setup-hooks` | Configure PreCompact capture hook (standalone) |
+| `npx rekindle setup-delivery` | Configure SessionStart delivery hook (standalone) |
+| `npx rekindle session-start` | Emit budgeted orientation packet (SessionStart hook) |
+| `npx rekindle session-start --client cursor` | Same, in Cursor's hook response shape |
 | `npx rekindle precompact-capture` | Capture context before compaction (hook) |
 | `npx rekindle capture-now` | Manually capture current session context |
 | `npx rekindle` | Start MCP server (used by Claude Code) |
@@ -295,7 +308,7 @@ Rules 3 and 5 exist because some hosts (e.g. Claude Desktop) spawn MCP servers a
 - **All data is local.** Nothing is sent to external servers.
 - **No network calls.** The MCP server communicates via stdio. No HTTP, no telemetry, no analytics.
 - **Transcripts contain conversation text.** Do not enable transcript capture if your sessions contain secrets or credentials.
-- **Hook installation is opt-in.** `setup-hooks` must be run explicitly (not auto-installed by `init`).
+- **Hook installation is opt-in.** Both the capture hook (`setup-hooks`) and the delivery hook (`setup-delivery`) must be requested explicitly, by command or by flag. Plain `init` never installs either.
 - **SQLite database is a regular file.** Not encrypted. Use OS-level disk encryption if needed.
 - **`.rekindle/` is gitignored.** The init command handles this automatically.
 - **boot_report reads local files.** Paths are not sandboxed. Only use with MCP clients and prompts you trust.
@@ -304,14 +317,42 @@ Rules 3 and 5 exist because some hosts (e.g. Claude Desktop) spawn MCP servers a
 
 ## Compatibility
 
-| Client | Transport | Status |
+"Full delivery" means the orientation packet arrives automatically at session boundaries and the model demonstrably sees it — measured with canary probes at both the receipt layer and the model layer, not assumed. Details and evidence: [compatibility spike results](docs/compatibility-spike-results.md).
+
+| Client surface | MCP tools | Session-start delivery |
 |--------|-----------|--------|
-| Claude Code (macOS) | stdio | Tested |
-| Claude Code (Linux/WSL2) | stdio | Tested |
-| Claude Code (Windows) | stdio | Tested |
-| Claude Desktop | stdio | Compatible (same MCP config format) |
-| Cursor | stdio | Compatible (same MCP config format) |
-| Any MCP stdio client | stdio | Compatible |
+| Claude Code terminal (macOS) | Tested | Full delivery, measured (startup, resume, `/clear`, `/compact`) |
+| Claude Code terminal (Windows) | Tested | Full delivery, measured |
+| Claude Code terminal (Linux/WSL2) | Tested | Hook channel identical; delivery measurement pending |
+| Claude Desktop, Code surface | Tested | Full delivery, measured (`/clear` re-delivers via new-session startup) |
+| Claude Desktop, chat surface | Tested | Tool-mode only: hooks unsupported by the client; guidance reachable via the model's tool-search |
+| Cursor | Tested | Via `.cursor/hooks.json`, measured (see below) |
+| Any MCP stdio client | Compatible | Depends on the client's hook support |
+
+### Claude Code: session-start orientation (opt-in)
+
+```bash
+npx rekindle setup-delivery
+```
+
+writes this to `.claude/settings.local.json`:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          { "type": "command", "command": "npx rekindle session-start", "timeout": 60 }
+        ]
+      }
+    ]
+  }
+}
+```
+
+The packet is capped at 8,000 valid UTF-8 bytes — measured: when hook output exceeds the host's limit, the model sees only the leading portion, with no error surfaced. If sections are dropped to fit the budget, an in-packet marker says so, and the receipt in `.rekindle/receipts/session-start.jsonl` records exactly what was emitted without ever claiming the model saw it.
 
 ### Cursor: session-start orientation (opt-in)
 
@@ -365,8 +406,14 @@ rekindle/
       read-capture.ts   Read captures in 3 modes
       capture-now.ts    Model-triggered manual capture
       store.ts search.ts list.ts delete.ts update.ts
+    delivery/
+      budget.ts       8000-byte UTF-8 packet construction, truncation marker
+      receipts.ts     Emission receipts (never claim model visibility)
+      session-start.ts SessionStart hook adapter
+      cursor.ts       Cursor hook adapter (privacy-whitelisted stdin)
+      guidance.ts     Canonical workflow guidance, both channels
     init/
-      cli.ts scaffold.ts setup-hooks.ts templates/
+      cli.ts scaffold.ts setup-hooks.ts setup-delivery.ts templates/
 ```
 
 **Storage:** SQLite + FTS5 via `better-sqlite3`. BM25 ranking boosted by importance. Typed records with `type`, `source`, `session_id`.
@@ -381,7 +428,7 @@ rekindle/
 npm test
 ```
 
-101 tests: storage CRUD + FTS5 ranking, orientation domain (gap detection, scoring, service, rendering), capture manager (parsing, limits, review tracking, formatting), hook setup (schema, idempotency), and MCP integration (all 10 tools).
+147 tests: storage CRUD + FTS5 ranking, orientation domain (gap detection, scoring, service, rendering), capture manager (parsing, limits, review tracking, formatting), delivery (packet budget, receipts, guidance channels, Cursor privacy sentinels), hook setup for both hooks (schema, idempotency, corruption refusal), and MCP integration (all 10 tools).
 
 ## Roadmap
 
