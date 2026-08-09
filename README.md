@@ -23,7 +23,7 @@ npx rekindle init
 
 Rekindle is an MCP continuity engine that solves **session orientation**, not just storage. Orient at session start, capture at session end, survive mid-session compaction. All local, all SQLite, zero API keys.
 
-**v0.3.1 — "Five Measured Gates"** — session-start orientation delivery for Claude Code, budgeted packets with truthful receipts, Desktop-safe storage, Cursor adapter with structural privacy. Every claim measured. [Release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.3.1)
+**v0.3.2** — one-command install for session-start orientation delivery (`npx rekindle setup-delivery`), on top of v0.3.1's five measured gates: budgeted packets with truthful receipts, Desktop-safe storage, Cursor adapter with structural privacy. Every claim measured. [Release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.3.2)
 
 ## Quick Start
 
@@ -206,17 +206,23 @@ A static file is passive. Your AI reads it, but it can't search it, rank it, tra
 
 ---
 
-## v0.3.1 Highlights
+## Release Highlights
 
-- **Session-start delivery** — `rekindle session-start` emits a budgeted orientation packet via the SessionStart hook at startup, resume, `/clear`, and `/compact`; `setup-delivery` installs it opt-in
+**v0.3.2**
+
+- **One-command delivery install** — `npx rekindle setup-delivery` (or `init --with-delivery`) configures the SessionStart hook opt-in: idempotent, preserves other tools' hooks, refuses corrupted settings files
+- **147 automated tests**
+
+**v0.3.1 — "Five Measured Gates"**
+
+- **Session-start delivery** — `rekindle session-start` emits a budgeted orientation packet via the SessionStart hook at startup, resume, `/clear`, and `/compact`
 - **Budgeted packets, truthful receipts** — packets cap at 8,000 valid UTF-8 bytes with an in-packet truncation marker; receipts attest emission only and never claim model visibility
 - **Desktop-safe storage** — storage root never derives from the spawn point (Claude Desktop spawns MCP servers at `/`); explicit resolution order, fail-loud
 - **Dual-channel guidance** — workflow guidance rides both tool descriptions and MCP instructions, drift structurally impossible
 - **Cursor adapter** — `session-start --client cursor` with whitelist stdin parsing; email and workspace paths never reach receipts
 - **Measured, not assumed** — every claim above is backed by a published measurement ([evidence](docs/evidence-v0.3.1-measurements), [spike results](docs/compatibility-spike-results.md))
-- **147 automated tests**
 
-v0.3.0 ("Survive the Long Middle") added the PreCompact capture system, open loops, and review tracking — [v0.3.0 release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.3.0)
+**v0.3.0 — "Survive the Long Middle"** added the PreCompact capture system, open loops, and review tracking — [v0.3.0 release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.3.0)
 
 ---
 
