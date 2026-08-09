@@ -7,6 +7,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { REKINDLE_VERSION } from "../../version.js";
 
 let storage: RekindleStorage;
 let client: Client;
@@ -33,6 +34,13 @@ afterEach(() => {
 });
 
 describe("MCP server integration", () => {
+  it("reports the version from package metadata", () => {
+    expect(client.getServerVersion()).toEqual({
+      name: "rekindle",
+      version: REKINDLE_VERSION,
+    });
+  });
+
   it("lists 10 tools", async () => {
     const result = await client.listTools();
     const names = result.tools.map((t) => t.name).sort();

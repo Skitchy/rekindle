@@ -13,12 +13,13 @@ import { registerEndSession } from "./tools/end-session.js";
 import { registerListCaptures } from "./tools/list-captures.js";
 import { registerReadCapture } from "./tools/read-capture.js";
 import { registerCaptureNow } from "./tools/capture-now.js";
+import { REKINDLE_VERSION } from "./version.js";
 
 export function createServer(storage: RekindleStorage, captureManager: CaptureManager): McpServer {
   const server = new McpServer(
     {
       name: "rekindle",
-      version: "0.3.0",
+      version: REKINDLE_VERSION,
     },
     {
       // Composed from the same fragments that ride the tool descriptions —

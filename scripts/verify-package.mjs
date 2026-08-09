@@ -15,7 +15,7 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const workspace = mkdtempSync(join(tmpdir(), "rekindle-package-check-"));
 
 function run(command, args, cwd) {
-  execFileSync(command, args, {
+  return execFileSync(command, args, {
     cwd,
     encoding: "utf-8",
     stdio: "pipe",
@@ -74,7 +74,62 @@ try {
     }
   }
 
-  console.log("Package verification passed: init is opt-in and the packed hook schema matches source.");
+  run(process.execPath, [cli, "setup-delivery"], projectDir);
+  const deliverySettings = JSON.parse(readFileSync(settingsPath, "utf-8"));
+  const sessionStartGroups = deliverySettings?.hooks?.SessionStart;
+  if (!Array.isArray(sessionStartGroups) || sessionStartGroups.length !== 1) {
+    throw new Error("Packaged SessionStart configuration must contain one matcher group");
+  }
+
+  const deliveryGroup = sessionStartGroups[0];
+  const deliveryHook = deliveryGroup?.hooks?.[0];
+  if (
+    deliveryGroup?.matcher !== "startup|resume|clear|compact" ||
+    deliveryHook?.command !== "npx rekindle session-start" ||
+    deliveryHook?.timeout !== 60
+  ) {
+    throw new Error("Packaged SessionStart hook does not match the documented contract");
+  }
+
+  const installedRoot = join(projectDir, "node_modules", "rekindle");
+  const installedPackage = JSON.parse(
+    readFileSync(join(installedRoot, "package.json"), "utf-8")
+  );
+  const initializeRequest = JSON.stringify({
+    jsonrpc: "2.0",
+    id: 1,
+    method: "initialize",
+    params: {
+      protocolVersion: "2025-06-18",
+      capabilities: {},
+      clientInfo: { name: "package-verifier", version: "1" },
+    },
+  });
+  const initializeOutput = execFileSync(
+    process.execPath,
+    [join(installedRoot, "dist", "index.js")],
+    {
+      cwd: projectDir,
+      input: `${initializeRequest}\n`,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        REKINDLE_BASE_DIR: projectDir,
+      },
+    }
+  );
+  const initializeResponse = JSON.parse(initializeOutput.trim().split("\n")[0]);
+  const reportedVersion = initializeResponse?.result?.serverInfo?.version;
+  if (reportedVersion !== installedPackage.version) {
+    throw new Error(
+      `Packed MCP version ${reportedVersion ?? "<missing>"} does not match package version ${installedPackage.version}`
+    );
+  }
+
+  console.log(
+    "Package verification passed: init is opt-in, packed hook schemas match source, and MCP metadata matches the package version."
+  );
 } finally {
   rmSync(workspace, { recursive: true, force: true });
 }

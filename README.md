@@ -3,7 +3,7 @@
 # Rekindle
 
 [![npm](https://img.shields.io/npm/v/rekindle)](https://www.npmjs.com/package/rekindle)
-[![tests](https://img.shields.io/badge/tests-147%20passing-brightgreen)](#tests)
+[![tests](https://img.shields.io/badge/tests-148%20passing-brightgreen)](#tests)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Glama score](https://glama.ai/mcp/servers/Skitchy/rekindle/badges/score.svg)](https://glama.ai/mcp/servers/Skitchy/rekindle)
 
@@ -23,7 +23,7 @@ npx rekindle init
 
 Rekindle is an MCP continuity engine that solves **session orientation**, not just storage. Orient at session start, capture at session end, survive mid-session compaction. All local, all SQLite, zero API keys.
 
-**v0.3.2** — one-command install for session-start orientation delivery (`npx rekindle setup-delivery`), on top of v0.3.1's five measured gates: budgeted packets with truthful receipts, Desktop-safe storage, Cursor adapter with structural privacy. Every claim measured. [Release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.3.2)
+**v0.3.3** — version-consistent MCP metadata and package documentation, on top of v0.3.2's one-command session-start delivery installer. [Release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.3.3)
 
 ## Quick Start
 
@@ -207,6 +207,12 @@ A static file is passive. Your AI reads it, but it can't search it, rank it, tra
 ---
 
 ## Release Highlights
+
+**v0.3.3**
+
+- **Version-consistent protocol metadata** — the MCP initialize response derives its version from the shipped package metadata, preventing release-version drift
+- **Package-page accuracy** — the README shipped to npm identifies the current release before the tag and package are created
+- **148 automated tests**, plus a packed-artifact check that compares MCP metadata to the installed package version
 
 **v0.3.2**
 
@@ -434,7 +440,7 @@ rekindle/
 npm test
 ```
 
-147 tests: storage CRUD + FTS5 ranking, orientation domain (gap detection, scoring, service, rendering), capture manager (parsing, limits, review tracking, formatting), delivery (packet budget, receipts, guidance channels, Cursor privacy sentinels), hook setup for both hooks (schema, idempotency, corruption refusal), and MCP integration (all 10 tools).
+148 tests: storage CRUD + FTS5 ranking, orientation domain (gap detection, scoring, service, rendering), capture manager (parsing, limits, review tracking, formatting), delivery (packet budget, receipts, guidance channels, Cursor privacy sentinels), hook setup for both hooks (schema, idempotency, corruption refusal), and MCP integration (all 10 tools plus package-derived server metadata).
 
 ## Roadmap
 

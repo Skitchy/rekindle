@@ -1,6 +1,6 @@
 {
   "name": "rekindle",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "mcpName": "io.github.Skitchy/rekindle",
   "description": "Your AI forgets everything between sessions. Rekindle fixes that.",
   "type": "module",
