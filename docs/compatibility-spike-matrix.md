@@ -139,6 +139,17 @@ Status values: `PASS`, `FAIL`, `BLOCKED`, `NOT SUPPORTED`, or `NOT RUN`.
 | CU-H-02 | Cursor | SessionStart-style hook | clean agent/role | Withheld if channel exists | O3 |
 | CU-M-01 | Cursor | MCP instructions | startup | Protocol and model results separated | O1, O6 |
 
+Post-release addendum rows (2026-08-08, not part of the ratified set; verdicts and findings in `compatibility-spike-results.md`):
+
+| ID | Client | Channel | Session type | Expected result | Primary oracles |
+|---|---|---|---|---|---|
+| CCW-H-01 | Claude Code terminal (Windows) | SessionStart | startup | Packet delivered once | O1, O2, O5 |
+| CCW-H-03 | Claude Code terminal (Windows) | SessionStart | clear | Fresh packet delivered once | O1, O2, O4 |
+| CCW-H-04 | Claude Code terminal (Windows) | SessionStart | compact | Fresh packet delivered after compaction | O1, O2, O4 |
+| CDC-H-01 | Claude Desktop, Code surface | SessionStart | startup | Packet delivered once | O1, O2, O5 |
+| CDC-H-03 | Claude Desktop, Code surface | SessionStart | clear | Orientation survives the boundary | O1, O2, O4 |
+| CDC-H-04 | Claude Desktop, Code surface | SessionStart | compact | Fresh packet delivered after compaction | O1, O2, O4 |
+
 ## Execution controls
 
 1. Run each case in a fresh temporary project with synthetic identity data.

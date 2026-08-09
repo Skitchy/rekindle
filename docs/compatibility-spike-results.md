@@ -182,3 +182,40 @@ The gap stated as a limitation on Pass 2 was closed before any Desktop case ran:
 The committed manifest now binds 40 artifacts (27 from Pass 2 plus 13 Desktop artifacts under `desktop/`). Extended manifest digest: `ddb6e9d59f66f47a012d8dfb35924ff4fb915abe6fae0022a966a28da8e70bab`. The Pass 2 section's digest citation reflects the manifest as first committed and remains historically accurate.
 
 No structural-delivery acceptance claim is made from this pass. Disposition remains with the maintainer per the matrix gate.
+
+## Post-release addendum (2026-08-08 evening): Windows platform and Claude Desktop Code surface
+
+Scope: supplementary measurement of `rekindle@0.3.1` exactly as shipped on npm (registry shasum `e15adaa26019023b68622e4c63102445ec6b995d`), executed after release. Not part of the ratified v0.3.1 gate set; measured by CC with the maintainer's hands on a Windows machine, control-first (terminal baseline before the Desktop Code surface). Method: synthetic canary token `RK_ZC_CANARY_9d4e71b2` in a fixture `.rekindle/identity.md`; PreCompact hook from `init --with-hooks`; SessionStart delivery hook (`startup|resume|clear|compact` invoking `npx rekindle session-start`) added opt-in per the documented configuration. Oracles as in prior passes: emission receipts on disk, plus the model naming the canary in its reply after each boundary (model-visible layer).
+
+### Results
+
+| ID | Client | Session type | Result |
+|---|---|---|---|
+| CCW-H-01 | Claude Code terminal (Windows) | startup | PASS (receipt + model-visible, two independent sessions) |
+| CCW-H-03 | Claude Code terminal (Windows) | clear | PASS (receipt + model-visible) |
+| CCW-H-04 | Claude Code terminal (Windows) | compact | PASS (receipt + model-visible) |
+| CDC-H-01 | Claude Desktop, Code surface | startup | PASS (receipt + model-visible) |
+| CDC-H-03 | Claude Desktop, Code surface | clear | PASS with mechanism note (finding 1) |
+| CDC-H-04 | Claude Desktop, Code surface | compact | PASS (receipt source `compact` + model-visible) |
+
+Every probe issued in the Code surface produced a model-layer canary confirmation; zero misses across both clients.
+
+### Findings
+
+1. **`/clear` on the Desktop Code surface is a new-session event, not a `clear`-source hook.** No `SessionStart(clear)` receipt exists for the Code-surface block; a fresh session id opened and startup-source delivery carried the packet. User outcome is identical (orientation survives `/clear`); the mechanism differs. Public claim wording: "orientation survives `/clear` on the Code surface via new-session startup delivery."
+2. **Phantom startup emissions on the Code surface.** Four startup receipts within roughly seventy seconds, but only two session transcripts exist; the client appears to preload or retry sessions, firing SessionStart hooks for sessions that never materialize. Harmless (each emission is a bounded packet with a truthful receipt), but receipt counts overcount real sessions in this client.
+3. **`init --with-hooks` installs the PreCompact capture hook only.** The SessionStart delivery hook is opt-in by design (the 0.3.0 truth-list privacy promise) and must be added per the documented configuration. Flagged as a documentation-clarity candidate: the flag name can read as installing delivery.
+
+### Updated source-aware support picture
+
+| Surface | State |
+|---|---|
+| Claude Code terminal, macOS | Full delivery, measured (v0.3.1 gates) |
+| Claude Code terminal, Windows | Full delivery, measured (this addendum) |
+| Claude Desktop, Code surface | Full delivery, measured (this addendum; findings 1 and 2 apply) |
+| Claude Desktop, chat surface | Tool-mode only: hooks unsupported, guidance reachable via tool-search (v0.3.1 gate 2) |
+| Cursor | Adapter with structural privacy invariants (v0.3.1 gate 5) |
+
+### Evidence
+
+Receipts and session transcripts are retained in the maintainer's private evidence store (session transcripts contain operator prompts and are withheld from publication under the standing evidence gate; receipts quoted above are reproducible on request). No public artifact in this addendum carries user paths, device identifiers, or account data.
