@@ -52,6 +52,11 @@ export class OrientationRenderer {
         "transcript",
         `## Last Session Transcript\nExcluded by policy; transcript files and paths were not read.`
       );
+    } else if (result.transcript.mode === "tail-read-only" && result.transcript.exists && result.transcript.preview) {
+      sections.set(
+        "transcript",
+        `## Last Session Transcript Tail\nFilename withheld by policy.\n\n${result.transcript.preview}`
+      );
     } else if (result.transcript.exists && result.transcript.preview) {
       sections.set(
         "transcript",

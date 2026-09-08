@@ -98,6 +98,8 @@ describe("runSessionStart", () => {
     const packet = JSON.parse(stdout as string).hookSpecificOutput.additionalContext;
     expect(packet).not.toContain("EARLY-SENTINEL");
     expect(packet).toContain("TAIL-SENTINEL");
+    expect(packet).not.toContain("session.md");
+    expect(packet).toContain("Filename withheld by policy");
   });
 
   it("scopes memory statistics to the resolved project", () => {
