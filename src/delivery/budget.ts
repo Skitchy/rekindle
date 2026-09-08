@@ -27,11 +27,72 @@ export interface PacketSection {
 
 export interface SectionDisposition {
   name: string;
-  disposition: "included" | "truncated" | "dropped";
+  disposition: "included" | "truncated" | "dropped" | "failed";
   /** Bytes of this section actually present in the emitted packet. */
   emitted_bytes: number;
   /** Bytes the section would have occupied unbudgeted. */
   full_bytes: number;
+}
+
+/**
+ * Assemble a policy-governed startup packet. Mandatory sections are atomic:
+ * either all are emitted whole, or a bounded failure packet is emitted.
+ * Optional sections are included whole when they fit and otherwise omitted.
+ */
+export function budgetPacketAtomic(
+  sections: PacketSection[],
+  mandatoryNames: readonly string[],
+  budgetBytes: number = HOOK_BUDGET_BYTES
+): BudgetedPacket {
+  const mandatory = new Set(mandatoryNames);
+  const required = sections.filter((section) => mandatory.has(section.name));
+  const optional = sections.filter((section) => !mandatory.has(section.name));
+  const requiredText = required.map((section) => section.content).join(SEPARATOR);
+  const requiredBytes = byteLength(requiredText);
+
+  if (requiredBytes > budgetBytes) {
+    const dispositions: SectionDisposition[] = sections.map((section) => ({
+      name: section.name,
+      disposition: mandatory.has(section.name) ? "failed" : "dropped",
+      emitted_bytes: 0,
+      full_bytes: byteLength(section.content),
+    }));
+    const lines = dispositions.map(
+      (section) => `- ${section.name}: ${section.disposition}; ${section.full_bytes} bytes`
+    );
+    const failure = [
+      "## Rekindle Startup Failure",
+      "Mandatory orientation sections did not fit and were not partially emitted.",
+      `Budget: ${budgetBytes} bytes; mandatory content: ${requiredBytes} bytes.`,
+      "Manifest:",
+      ...lines,
+    ].join("\n");
+    if (byteLength(failure) > budgetBytes) {
+      throw new Error(`startup failure manifest exceeds its ${budgetBytes}-byte budget`);
+    }
+    return { text: failure, bytes: byteLength(failure), budget_bytes: budgetBytes, sections: dispositions };
+  }
+
+  const parts = required.map((section) => section.content);
+  let used = requiredBytes;
+  const included = new Set(required.map((section) => section.name));
+  for (const section of optional) {
+    const separatorBytes = parts.length > 0 ? byteLength(SEPARATOR) : 0;
+    const fullBytes = byteLength(section.content);
+    if (used + separatorBytes + fullBytes <= budgetBytes) {
+      parts.push(section.content);
+      used += separatorBytes + fullBytes;
+      included.add(section.name);
+    }
+  }
+  const dispositions: SectionDisposition[] = sections.map((section) => ({
+    name: section.name,
+    disposition: included.has(section.name) ? "included" : "dropped",
+    emitted_bytes: included.has(section.name) ? byteLength(section.content) : 0,
+    full_bytes: byteLength(section.content),
+  }));
+  const text = parts.join(SEPARATOR);
+  return { text, bytes: byteLength(text), budget_bytes: budgetBytes, sections: dispositions };
 }
 
 export interface BudgetedPacket {

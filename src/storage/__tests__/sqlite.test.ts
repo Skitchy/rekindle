@@ -46,6 +46,43 @@ describe("store", () => {
     expect(mem!.category).toBe("general");
     expect(mem!.importance).toBe(5);
   });
+
+  it("records caller provenance as attributed but unverified", () => {
+    const provenance = {
+      client: "codex",
+      thread_id: "thread-1",
+      request_id: "request-1",
+      author_identity: "ari",
+      authorization_reference: "fabricated-or-real-cannot-be-proven-here",
+    };
+    const id = storage.store("Attributed", "general", 5, "P", { provenance });
+    const memory = storage.get(id)!;
+    expect(memory.writer_client).toBe("codex");
+    expect(memory.authorization_reference).toBe(provenance.authorization_reference);
+    expect(memory.authorization_verified).toBe(0);
+    const audit = storage.listWriteAudit(id);
+    expect(audit).toHaveLength(1);
+    expect(audit[0]).toMatchObject({ action: "store", authorization_verified: 0 });
+  });
+
+  it("fails closed when the profile requires provenance", () => {
+    storage.close();
+    storage = new RekindleStorage(join(tmpDir, "db", "memories.db"), true);
+    expect(() => storage.store("No attribution")).toThrow("write provenance is required");
+    expect(storage.list()).toHaveLength(0);
+  });
+});
+
+describe("migration", () => {
+  it("is idempotent and preserves records across repeated opens", () => {
+    const id = storage.store("Preserve exactly");
+    storage.close();
+    storage = new RekindleStorage(join(tmpDir, "db", "memories.db"));
+    storage.close();
+    storage = new RekindleStorage(join(tmpDir, "db", "memories.db"));
+    expect(storage.list()).toHaveLength(1);
+    expect(storage.get(id)?.content).toBe("Preserve exactly");
+  });
 });
 
 describe("get", () => {

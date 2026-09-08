@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { RekindleStorage, type MemoryCategory } from "../storage/sqlite.js";
+import { writeProvenanceSchema } from "./provenance.js";
 
 export function registerStoreMemory(
   server: McpServer,
@@ -25,13 +26,15 @@ export function registerStoreMemory(
         .string()
         .optional()
         .describe("Project name to scope this memory to. When set, boot_report can filter orientation to this project. Omit for cross-project memories."),
+      provenance: writeProvenanceSchema.optional().describe("Write attribution. Required when REKINDLE_REQUIRE_WRITE_PROVENANCE=1; never proof of authorization."),
     },
-    async ({ content, category, importance, project }) => {
+    async ({ content, category, importance, project, provenance }) => {
       const id = storage.store(
         content,
         category as MemoryCategory,
         importance,
-        project
+        project,
+        { provenance }
       );
       return {
         content: [

@@ -3,6 +3,7 @@ import {
   budgetPacket,
   truncateUtf8,
   HOOK_BUDGET_BYTES,
+  budgetPacketAtomic,
 } from "../budget.js";
 
 const bytes = (s: string) => Buffer.byteLength(s, "utf-8");
@@ -30,6 +31,37 @@ describe("truncateUtf8", () => {
       expect(bytes(out)).toBeLessThanOrEqual(max);
       expect(out.includes("�")).toBe(false);
     }
+  });
+});
+
+describe("budgetPacketAtomic", () => {
+  it("never emits a partial mandatory section and keeps the failure manifest in budget", () => {
+    const p = budgetPacketAtomic(
+      [
+        { name: "identity", content: "i".repeat(2000) },
+        { name: "project", content: "project" },
+        { name: "optional", content: "optional" },
+      ],
+      ["identity", "project"],
+      1024
+    );
+    expect(p.bytes).toBeLessThanOrEqual(1024);
+    expect(p.text).toContain("Startup Failure");
+    expect(p.sections.find((s) => s.name === "identity")?.disposition).toBe("failed");
+    expect(p.text).not.toContain("i".repeat(100));
+  });
+
+  it("omits optional sections whole", () => {
+    const p = budgetPacketAtomic(
+      [
+        { name: "identity", content: "required" },
+        { name: "optional", content: "x".repeat(2000) },
+      ],
+      ["identity"],
+      1024
+    );
+    expect(p.text).toBe("required");
+    expect(p.sections[1].disposition).toBe("dropped");
   });
 });
 

@@ -18,6 +18,14 @@ export class OrientationRenderer {
       sections.set("identity", `## Identity\nNot found at ${result.identity.path}`);
     }
 
+    if (result.project) {
+      const label = result.project.project ?? "UNKNOWN PROJECT";
+      sections.set(
+        "project",
+        `## Project Scope\n${label}\n\nResolution: ${result.project.rule}${result.project.cwd ? `\nWorkspace: ${result.project.cwd}` : ""}`
+      );
+    }
+
     const catBreakdown = Object.entries(result.memoryStats.byCategory)
       .map(([cat, count]) => `  ${cat}: ${count}`)
       .join("\n");
@@ -39,7 +47,12 @@ export class OrientationRenderer {
       sections.set("checkpoint", `## Last Checkpoint\nNone found`);
     }
 
-    if (result.transcript.exists && result.transcript.preview) {
+    if (result.transcript.mode === "excluded") {
+      sections.set(
+        "transcript",
+        `## Last Session Transcript\nExcluded by policy; transcript files and paths were not read.`
+      );
+    } else if (result.transcript.exists && result.transcript.preview) {
       sections.set(
         "transcript",
         `## Last Session Transcript\n${result.transcript.name}\n\n${result.transcript.preview}`
@@ -62,6 +75,7 @@ export class OrientationRenderer {
 
     const scoreLines = result.scoreBreakdown
       .map((item) => {
+        if (!item.applicable) return `N/A  ${item.label} (excluded by policy)`;
         if (item.earned) {
           return `+${String(item.points).padStart(2)}  ${item.label}`;
         }
@@ -70,7 +84,7 @@ export class OrientationRenderer {
       .join("\n");
     sections.set(
       "score",
-      `## Orientation Score\n${result.score}/100\n\n${scoreLines}\n\nThis score is a structural checklist, not a guarantee that all relevant context was loaded.`
+      `## Orientation Score\n${result.score}/100 (${result.scoreEarnedPoints}/${result.scorePossiblePoints} applicable points)\n\n${scoreLines}\n\nThis score is a structural checklist, not a guarantee that all relevant context was loaded.`
     );
 
     return sections;
@@ -78,7 +92,7 @@ export class OrientationRenderer {
 
   static toMarkdown(result: OrientationResult): string {
     const sections = OrientationRenderer.toSections(result);
-    return ["identity", "memories", "checkpoint", "transcript", "gaps", "score"]
+    return ["identity", "project", "memories", "checkpoint", "transcript", "gaps", "score"]
       .map((name) => sections.get(name) as string)
       .join("\n\n---\n\n");
   }

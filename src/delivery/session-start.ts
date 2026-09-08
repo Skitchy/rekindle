@@ -4,11 +4,13 @@ import { resolveStorageRoot } from "../storage/root.js";
 import { OrientationService } from "../orientation/OrientationService.js";
 import { OrientationRenderer } from "../orientation/OrientationRenderer.js";
 import {
-  budgetPacket,
+  budgetPacketAtomic,
   HOOK_BUDGET_BYTES,
   type PacketSection,
 } from "./budget.js";
 import { writeReceipt, type DeliveryReceipt } from "./receipts.js";
+import { loadPolicy } from "../config/policy.js";
+import { resolveProject } from "../config/project-resolution.js";
 
 export interface HookInput {
   session_id?: string;
@@ -36,7 +38,9 @@ export interface SessionStartResult {
  */
 const SECTION_PRIORITY = [
   "identity",
+  "project",
   "checkpoint",
+  "policy",
   "gaps",
   "score",
   "memories",
@@ -70,7 +74,7 @@ export function runSessionStart(
     DeliveryReceipt,
     "emitted" | "emitted_bytes" | "sections" | "bypassed" | "bypass_reason" | "error"
   > = {
-    schema_version: 2,
+    schema_version: 3,
     channel: "session-start",
     client: env.REKINDLE_CLIENT ?? "claude-code",
     session_source: input.source ?? null,
@@ -79,6 +83,11 @@ export function runSessionStart(
     attempted_at: new Date().toISOString(),
     budget_bytes: HOOK_BUDGET_BYTES,
     model_visible: "unmeasured",
+    resolved_project: null,
+    project_resolution: "unmeasured",
+    policy_version: null,
+    policy_hash: null,
+    source_record_ids: [],
   };
 
   if (bypassReason !== null) {
@@ -95,16 +104,30 @@ export function runSessionStart(
   }
 
   let sections: PacketSection[];
+  let policy;
+  let projectResolution;
+  let sourceRecordIds: string[] = [];
   try {
+    policy = loadPolicy(root.baseDir);
+    projectResolution = resolveProject(root.baseDir, input.cwd, env.REKINDLE_PROJECT);
     const storage = new RekindleStorage(root.dbPath);
     try {
       const orientation = new OrientationService(storage);
       const result = orientation.generate({
         identityPath: join(root.baseDir, ".rekindle", "identity.md"),
         transcriptDir: join(root.baseDir, ".rekindle", "transcripts"),
-        project: env.REKINDLE_PROJECT,
+        project: projectResolution.project ?? undefined,
+        projectResolution,
+        transcriptMode: policy.policy.transcript_mode,
+        allowCheckpointLookup: projectResolution.status === "resolved",
+        allowContextFallback: false,
       });
+      if (result.checkpoint.id) sourceRecordIds.push(result.checkpoint.id);
       const byName = OrientationRenderer.toSections(result);
+      byName.set(
+        "policy",
+        `## Continuity Policy\nVersion: ${policy.policy.schema_version}\nSource: ${policy.source}\nTranscript: ${policy.policy.transcript_mode}\nBackground writes allowed: ${policy.policy.background_writes_allowed}`
+      );
       sections = SECTION_PRIORITY.filter((name) => byName.has(name)).map(
         (name) => ({ name, content: byName.get(name) as string })
       );
@@ -124,9 +147,19 @@ export function runSessionStart(
     return { stdout: null, packet: null, receipt, receiptPath };
   }
 
-  const packet = budgetPacket(sections);
+  const packet = budgetPacketAtomic(
+    sections,
+    policy.policy.mandatory_sections,
+    policy.policy.startup_budget_bytes
+  );
   const receipt: DeliveryReceipt = {
     ...base,
+    budget_bytes: policy.policy.startup_budget_bytes,
+    resolved_project: projectResolution.project,
+    project_resolution: projectResolution.rule,
+    policy_version: policy.policy.schema_version,
+    policy_hash: policy.hash,
+    source_record_ids: sourceRecordIds,
     emitted: true,
     emitted_bytes: packet.bytes,
     sections: packet.sections,

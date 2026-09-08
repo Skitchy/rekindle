@@ -1,11 +1,13 @@
 import type { MemoryStats } from "../storage/sqlite.js";
 import type { Gap } from "./types.js";
+import type { TranscriptMode } from "../config/policy.js";
 
 export function detectGaps(
   stats: MemoryStats,
   hasIdentity: boolean,
   hasTranscript: boolean,
-  hasCheckpoint: boolean
+  hasCheckpoint: boolean,
+  transcriptMode: TranscriptMode = "captured"
 ): Gap[] {
   const gaps: Gap[] = [];
 
@@ -59,7 +61,7 @@ export function detectGaps(
     });
   }
 
-  if (!hasTranscript) {
+  if (transcriptMode !== "excluded" && !hasTranscript) {
     gaps.push({
       code: "transcript_missing",
       severity: "info",

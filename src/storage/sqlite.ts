@@ -16,6 +16,20 @@ export interface Memory {
   updated_at: string;
   retrieval_count: number;
   last_accessed: string | null;
+  writer_client: string | null;
+  writer_thread_id: string | null;
+  request_id: string | null;
+  author_identity: string | null;
+  authorization_reference: string | null;
+  authorization_verified: number;
+}
+
+export interface WriteProvenance {
+  client: string;
+  thread_id: string;
+  request_id: string;
+  author_identity: string;
+  authorization_reference: string;
 }
 
 export interface Session {
@@ -100,12 +114,28 @@ CREATE TABLE IF NOT EXISTS sessions (
     summary TEXT,
     transcript_path TEXT
 );
+
+CREATE TABLE IF NOT EXISTS memory_write_audit (
+    id TEXT PRIMARY KEY,
+    memory_id TEXT NOT NULL,
+    action TEXT NOT NULL CHECK (action IN ('store','update','delete')),
+    client TEXT,
+    thread_id TEXT,
+    request_id TEXT,
+    author_identity TEXT,
+    authorization_reference TEXT,
+    authorization_verified INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now'))
+);
 `;
 
 export class RekindleStorage {
   private db: Database.Database;
 
-  constructor(dbPath: string) {
+  constructor(
+    dbPath: string,
+    private requireWriteProvenance: boolean = process.env.REKINDLE_REQUIRE_WRITE_PROVENANCE === "1"
+  ) {
     const dir = dirname(dbPath);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
@@ -127,6 +157,12 @@ export class RekindleStorage {
       "ALTER TABLE sessions ADD COLUMN checkpoint_memory_id TEXT",
       "ALTER TABLE sessions ADD COLUMN gap_count INTEGER DEFAULT 0",
       "ALTER TABLE sessions ADD COLUMN orientation_score INTEGER",
+      "ALTER TABLE memories ADD COLUMN writer_client TEXT",
+      "ALTER TABLE memories ADD COLUMN writer_thread_id TEXT",
+      "ALTER TABLE memories ADD COLUMN request_id TEXT",
+      "ALTER TABLE memories ADD COLUMN author_identity TEXT",
+      "ALTER TABLE memories ADD COLUMN authorization_reference TEXT",
+      "ALTER TABLE memories ADD COLUMN authorization_verified INTEGER NOT NULL DEFAULT 0",
     ];
 
     for (const sql of migrations) {
@@ -141,17 +177,42 @@ export class RekindleStorage {
     }
   }
 
+  private checkedProvenance(provenance?: WriteProvenance): WriteProvenance | undefined {
+    if (provenance) {
+      for (const [key, value] of Object.entries(provenance)) {
+        if (typeof value !== "string" || value.trim().length === 0) throw new Error(`write provenance ${key} is required`);
+      }
+      return provenance;
+    }
+    if (this.requireWriteProvenance) {
+      throw new Error("write provenance is required by this Rekindle profile");
+    }
+    return undefined;
+  }
+
+  private auditWrite(memoryId: string, action: "store" | "update" | "delete", provenance?: WriteProvenance): void {
+    this.db.prepare(`
+      INSERT INTO memory_write_audit
+        (id, memory_id, action, client, thread_id, request_id, author_identity, authorization_reference, authorization_verified)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+    `).run(generateId(), memoryId, action, provenance?.client ?? null, provenance?.thread_id ?? null,
+      provenance?.request_id ?? null, provenance?.author_identity ?? null,
+      provenance?.authorization_reference ?? null);
+  }
+
   store(
     content: string,
     category: MemoryCategory = "general",
     importance: number = 5,
     project?: string,
-    opts?: { type?: string; source?: string; session_id?: string }
+    opts?: { type?: string; source?: string; session_id?: string; provenance?: WriteProvenance }
   ): string {
+    const provenance = this.checkedProvenance(opts?.provenance);
     const id = generateId();
     const stmt = this.db.prepare(`
-      INSERT INTO memories (id, content, category, importance, project, type, source, session_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO memories (id, content, category, importance, project, type, source, session_id,
+        writer_client, writer_thread_id, request_id, author_identity, authorization_reference, authorization_verified)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
     `);
     stmt.run(
       id,
@@ -161,8 +222,14 @@ export class RekindleStorage {
       project ?? null,
       opts?.type ?? "memory",
       opts?.source ?? "manual",
-      opts?.session_id ?? null
+      opts?.session_id ?? null,
+      provenance?.client ?? null,
+      provenance?.thread_id ?? null,
+      provenance?.request_id ?? null,
+      provenance?.author_identity ?? null,
+      provenance?.authorization_reference ?? null
     );
+    this.auditWrite(id, "store", provenance);
     return id;
   }
 
@@ -223,6 +290,12 @@ export class RekindleStorage {
       updated_at: row.updated_at,
       retrieval_count: row.retrieval_count + 1,
       last_accessed: now,
+      writer_client: row.writer_client,
+      writer_thread_id: row.writer_thread_id,
+      request_id: row.request_id,
+      author_identity: row.author_identity,
+      authorization_reference: row.authorization_reference,
+      authorization_verified: row.authorization_verified,
       rank: row.fts_rank,
     }));
   }
@@ -259,8 +332,10 @@ export class RekindleStorage {
 
   update(
     id: string,
-    fields: { content?: string; category?: MemoryCategory; importance?: number }
+    fields: { content?: string; category?: MemoryCategory; importance?: number },
+    provenance?: WriteProvenance
   ): boolean {
+    const checked = this.checkedProvenance(provenance);
     const existing = this.get(id);
     if (!existing) return false;
 
@@ -276,14 +351,23 @@ export class RekindleStorage {
         `UPDATE memories SET content = ?, category = ?, importance = ?, updated_at = ? WHERE id = ?`
       )
       .run(content, category, importance, now, id);
+    this.auditWrite(id, "update", checked);
     return true;
   }
 
-  delete(id: string): boolean {
-    const result = this.db
-      .prepare(`DELETE FROM memories WHERE id = ?`)
-      .run(id);
-    return result.changes > 0;
+  delete(id: string, provenance?: WriteProvenance): boolean {
+    const checked = this.checkedProvenance(provenance);
+    const run = this.db.transaction(() => {
+      const result = this.db.prepare(`DELETE FROM memories WHERE id = ?`).run(id);
+      if (result.changes > 0) this.auditWrite(id, "delete", checked);
+      return result.changes > 0;
+    });
+    return run();
+  }
+
+  listWriteAudit(memoryId?: string): Array<Record<string, unknown>> {
+    if (memoryId) return this.db.prepare(`SELECT * FROM memory_write_audit WHERE memory_id = ? ORDER BY created_at, rowid`).all(memoryId) as Array<Record<string, unknown>>;
+    return this.db.prepare(`SELECT * FROM memory_write_audit ORDER BY created_at, rowid`).all() as Array<Record<string, unknown>>;
   }
 
   stats(): MemoryStats {
@@ -324,7 +408,10 @@ export class RekindleStorage {
     return { total, byCategory, byProject, recentCount };
   }
 
-  getLatestCheckpoint(project?: string): Memory | null {
+  getLatestCheckpoint(
+    project?: string,
+    options: { fallbackToContext?: boolean } = {}
+  ): Memory | null {
     let sql = `SELECT * FROM memories WHERE type = 'checkpoint'`;
     const params: string[] = [];
 
@@ -336,7 +423,7 @@ export class RekindleStorage {
     sql += ` ORDER BY created_at DESC, rowid DESC LIMIT 1`;
 
     let row = this.db.prepare(sql).get(...params) as Memory | undefined;
-    if (!row) {
+    if (!row && (options.fallbackToContext ?? true)) {
       let fallback = `SELECT * FROM memories WHERE category = 'context' AND type = 'memory'`;
       const fbParams: string[] = [];
       if (project) {

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { RekindleStorage } from "../storage/sqlite.js";
 import { CaptureManager } from "../captures/index.js";
 import { withGuidance } from "../delivery/guidance.js";
+import { writeProvenanceSchema } from "./provenance.js";
 
 interface StoredRecord {
   type: string;
@@ -64,6 +65,7 @@ export function registerEndSession(
         .string()
         .optional()
         .describe("Current session ID. Used to check for unreviewed PreCompact captures. If captures exist for this session that were not read via read_capture, a warning is included in the response."),
+      provenance: writeProvenanceSchema.optional().describe("Write attribution applied to every record. Required when REKINDLE_REQUIRE_WRITE_PROVENANCE=1; never proof of authorization."),
     },
     async ({
       checkpoint,
@@ -77,6 +79,7 @@ export function registerEndSession(
       project,
       transcript_path,
       session_id,
+      provenance,
     }) => {
       const sessionId = storage.createSession({
         summary: "",
@@ -89,6 +92,7 @@ export function registerEndSession(
         type,
         source: "end_session" as const,
         session_id: sessionId,
+        provenance,
       });
 
       const cpId = storage.store(

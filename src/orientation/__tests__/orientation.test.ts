@@ -63,6 +63,11 @@ describe("GapDetector", () => {
     expect(gaps.some((g) => g.code === "transcript_missing")).toBe(true);
   });
 
+  it("treats transcript exclusion as policy compliance", () => {
+    const gaps = detectGaps(fullStats(), true, false, true, "excluded");
+    expect(gaps.some((g) => g.code === "transcript_missing")).toBe(false);
+  });
+
   it("returns multiple gaps simultaneously", () => {
     const gaps = detectGaps(emptyStats(), false, false, false);
     expect(gaps.length).toBeGreaterThanOrEqual(3);
@@ -117,6 +122,19 @@ describe("Scorer", () => {
   it("breakdown has 6 items", () => {
     const { breakdown } = calculateScore(false, false, false, emptyStats());
     expect(breakdown).toHaveLength(6);
+  });
+
+  it("marks an excluded transcript N/A and normalizes applicable points", () => {
+    const { score, possiblePoints, breakdown } = calculateScore(true, true, false, fullStats(), "myproject", "excluded");
+    expect(score).toBe(100);
+    expect(possiblePoints).toBe(80);
+    expect(breakdown.find((b) => b.label === "Session transcript found")?.applicable).toBe(false);
+  });
+
+  it("does not award project scope when the active project is unresolved", () => {
+    const { score, breakdown } = calculateScore(true, true, true, fullStats(), undefined, "captured", false);
+    expect(breakdown.find((b) => b.label === "Active project resolved")?.earned).toBe(false);
+    expect(score).toBe(90);
   });
 });
 

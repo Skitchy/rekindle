@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { RekindleStorage, type MemoryCategory } from "../storage/sqlite.js";
+import { writeProvenanceSchema } from "./provenance.js";
 
 export function registerUpdateMemory(
   server: McpServer,
@@ -22,13 +23,14 @@ export function registerUpdateMemory(
         .max(10)
         .optional()
         .describe("New importance score from 1 (low) to 10 (critical). Omit to keep the existing score unchanged."),
+      provenance: writeProvenanceSchema.optional().describe("Write attribution. Required when REKINDLE_REQUIRE_WRITE_PROVENANCE=1; never proof of authorization."),
     },
-    async ({ id, content, category, importance }) => {
+    async ({ id, content, category, importance, provenance }) => {
       const updated = storage.update(id, {
         content,
         category: category as MemoryCategory | undefined,
         importance,
-      });
+      }, provenance);
 
       if (!updated) {
         return {

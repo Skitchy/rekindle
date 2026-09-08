@@ -10,7 +10,7 @@ import type { SectionDisposition } from "./budget.js";
  * emitter can know. Conflating the two is the failure CC-H-07 exposed.
  */
 export interface DeliveryReceipt {
-  schema_version: 2;
+  schema_version: 3;
   channel: "session-start";
   client: string;
   session_source: string | null;
@@ -21,6 +21,11 @@ export interface DeliveryReceipt {
   emitted: boolean;
   emitted_bytes: number;
   model_visible: "unmeasured";
+  resolved_project: string | null;
+  project_resolution: string;
+  policy_version: number | null;
+  policy_hash: string | null;
+  source_record_ids: string[];
   sections: SectionDisposition[];
   bypassed: boolean;
   bypass_reason: string | null;

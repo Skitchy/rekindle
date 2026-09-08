@@ -42,7 +42,7 @@ describe("runSessionStart", () => {
     expect(receipt.error).toBeNull();
   });
 
-  it("keeps an oversized identity within budget and records the truncation", () => {
+  it("fails loud instead of partially emitting an oversized identity", () => {
     writeFileSync(
       join(home, ".rekindle", "identity.md"),
       "水処理 identity ".repeat(2000) // far over 8000 bytes
@@ -53,9 +53,38 @@ describe("runSessionStart", () => {
     expect(Buffer.byteLength(packet, "utf-8")).toBeLessThanOrEqual(HOOK_BUDGET_BYTES);
     expect(packet.includes("�")).toBe(false);
     const identity = receipt.sections.find((s) => s.name === "identity");
-    expect(identity?.disposition).toBe("truncated");
+    expect(identity?.disposition).toBe("failed");
+    expect(packet).toContain("Rekindle Startup Failure");
+    expect(packet).toContain("Mandatory orientation sections did not fit");
     const dropped = receipt.sections.filter((s) => s.disposition !== "included");
     expect(dropped.length).toBeGreaterThan(0);
+  });
+
+  it("resolves a mapped cwd and never falls back to another project's context", () => {
+    const root = join(home, "work");
+    mkdirSync(root);
+    writeFileSync(join(home, ".rekindle", "projects.json"), JSON.stringify({
+      schema_version: 1,
+      projects: [{ name: "Mapped", root }],
+    }));
+    const first = runSessionStart({ cwd: root }, env());
+    const packet = JSON.parse(first.stdout as string).hookSpecificOutput.additionalContext;
+    expect(packet).toContain("## Project Scope\nMapped");
+    expect(packet).toContain("## Last Checkpoint\nNone found");
+    expect(first.receipt.resolved_project).toBe("Mapped");
+    expect(first.receipt.project_resolution).toBe("exact-root");
+  });
+
+  it("does not read transcripts when policy excludes them", () => {
+    writeFileSync(join(home, ".rekindle", "policy.json"), JSON.stringify({ transcript_mode: "excluded" }));
+    const transcriptDir = join(home, ".rekindle", "transcripts");
+    mkdirSync(transcriptDir);
+    writeFileSync(join(transcriptDir, "secret.md"), "must not enter packet");
+    const { stdout } = runSessionStart({}, env());
+    const packet = JSON.parse(stdout as string).hookSpecificOutput.additionalContext;
+    expect(packet).toContain("Excluded by policy");
+    expect(packet).not.toContain("must not enter packet");
+    expect(packet).not.toContain("transcript_missing");
   });
 
   it("bypasses on environment override with a truthful receipt and no stdout", () => {

@@ -43,6 +43,11 @@ export function scaffold(targetDir: string): void {
   writeFileSync(join(rekindleDir, "identity.md"), identityTemplate);
   console.log("Created identity template: .rekindle/identity.md");
 
+  for (const name of ["policy.json", "projects.json"]) {
+    writeFileSync(join(rekindleDir, name), readFileSync(getTemplatePath(name), "utf-8"));
+    console.log(`Created continuity configuration: .rekindle/${name}`);
+  }
+
   // Add .rekindle/ to .gitignore
   const gitignorePath = join(targetDir, ".gitignore");
   if (existsSync(gitignorePath)) {

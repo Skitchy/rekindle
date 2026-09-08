@@ -33,7 +33,7 @@ Requires Node.js 20 or newer.
 npx rekindle init
 ```
 
-This creates `.rekindle/` in your project with a SQLite database, identity template, captures directory, and transcript directory. Then add the MCP server config for your client:
+This creates `.rekindle/` in your project with a SQLite database, identity template, continuity policy, project registry, captures directory, and transcript directory. Then add the MCP server config for your client:
 
 <details open>
 <summary><strong>Claude Code</strong></summary>
@@ -61,6 +61,21 @@ npx rekindle setup-delivery
 ```
 
 Both hooks are opt-in; plain `init` never installs either. `npx rekindle init --with-hooks --with-delivery` does everything in one line.
+
+Session-start delivery resolves the hook's real working directory through
+`.rekindle/projects.json`. Exact roots match by default; nested directories
+inherit only when an entry sets `"include_descendants": true`. An unmapped or
+ambiguous workspace is reported as `UNKNOWN PROJECT` and never receives a
+checkpoint or context record from another project. `REKINDLE_PROJECT` remains
+an explicit override, and receipts record which resolution rule won.
+
+`.rekindle/policy.json` controls transcript handling, the startup byte budget,
+and mandatory versus optional packet sections. Mandatory sections are atomic:
+if they do not fit, Rekindle emits a bounded failure manifest instead of a
+partial anchor. Optional sections are omitted whole and recorded in the
+receipt. Set `"transcript_mode": "excluded"` to prevent SessionStart from
+reading transcript files or paths and to mark transcript coverage N/A in the
+orientation score.
 </details>
 
 <details>
@@ -212,7 +227,7 @@ A static file is passive. Your AI reads it, but it can't search it, rank it, tra
 
 - **Version-consistent protocol metadata** — the MCP initialize response derives its version from the shipped package metadata, preventing release-version drift
 - **Package-page accuracy** — the README shipped to npm identifies the current release before the tag and package are created
-- **148 automated tests**, plus a packed-artifact check that compares MCP metadata to the installed package version
+- **161 automated tests**, plus a packed-artifact check that compares MCP metadata to the installed package version
 
 **v0.3.2**
 
@@ -419,7 +434,7 @@ rekindle/
       capture-now.ts    Model-triggered manual capture
       store.ts search.ts list.ts delete.ts update.ts
     delivery/
-      budget.ts       8000-byte UTF-8 packet construction, truncation marker
+      budget.ts       UTF-8 packet construction and atomic mandatory sections
       receipts.ts     Emission receipts (never claim model visibility)
       session-start.ts SessionStart hook adapter
       cursor.ts       Cursor hook adapter (privacy-whitelisted stdin)
@@ -440,7 +455,7 @@ rekindle/
 npm test
 ```
 
-148 tests: storage CRUD + FTS5 ranking, orientation domain (gap detection, scoring, service, rendering), capture manager (parsing, limits, review tracking, formatting), delivery (packet budget, receipts, guidance channels, Cursor privacy sentinels), hook setup for both hooks (schema, idempotency, corruption refusal), and MCP integration (all 10 tools plus package-derived server metadata).
+161 tests: storage CRUD + FTS5 ranking, orientation domain (gap detection, policy-aware scoring, project resolution, service, rendering), capture manager (parsing, limits, review tracking, formatting), delivery (atomic packet budget, receipts, guidance channels, Cursor privacy sentinels), hook setup for both hooks (schema, idempotency, corruption refusal), and MCP integration (all 10 tools plus package-derived server metadata).
 
 ## Roadmap
 

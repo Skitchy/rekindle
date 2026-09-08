@@ -36,18 +36,32 @@ export class OrientationService {
     }
 
     const stats = this.storage.stats();
-    const checkpoint = this.storage.getLatestCheckpoint(config.project);
-    const transcript = findLatestTranscript(config.transcriptDir);
+    const checkpoint = config.allowCheckpointLookup === false
+      ? null
+      : this.storage.getLatestCheckpoint(config.project, {
+          fallbackToContext: config.allowContextFallback ?? true,
+        });
+    const transcriptMode = config.transcriptMode ?? "captured";
+    const transcript = transcriptMode === "excluded" ? null : findLatestTranscript(config.transcriptDir);
     const hasTranscript = transcript !== null;
     const hasCheckpoint = checkpoint !== null;
 
-    const gaps = detectGaps(stats, identityLoaded, hasTranscript, hasCheckpoint);
-    const { score, breakdown } = calculateScore(
+    const gaps = detectGaps(stats, identityLoaded, hasTranscript, hasCheckpoint, transcriptMode);
+    if (config.projectResolution && config.projectResolution.status !== "resolved") {
+      gaps.push({
+        code: config.projectResolution.status === "ambiguous" ? "project_ambiguous" : "project_unknown",
+        severity: "warning",
+        message: "Active workspace did not resolve to one canonical project; no checkpoint or context fallback was loaded.",
+      });
+    }
+    const { score, earnedPoints, possiblePoints, breakdown } = calculateScore(
       identityLoaded,
       hasCheckpoint,
       hasTranscript,
       stats,
-      config.project
+      config.project,
+      transcriptMode,
+      !config.projectResolution || config.projectResolution.status === "resolved"
     );
 
     const preview =
@@ -56,6 +70,7 @@ export class OrientationService {
         : transcript?.content;
 
     return {
+      project: config.projectResolution,
       identity: {
         loaded: identityLoaded,
         path: config.identityPath,
@@ -64,16 +79,20 @@ export class OrientationService {
       memoryStats: stats,
       checkpoint: {
         exists: hasCheckpoint,
+        id: checkpoint?.id,
         content: checkpoint?.content,
         created_at: checkpoint?.created_at,
       },
       transcript: {
         exists: hasTranscript,
+        mode: transcriptMode,
         name: transcript?.name,
         preview,
       },
       gaps,
       score,
+      scoreEarnedPoints: earnedPoints,
+      scorePossiblePoints: possiblePoints,
       scoreBreakdown: breakdown,
     };
   }
