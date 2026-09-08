@@ -75,7 +75,9 @@ if they do not fit, Rekindle emits a bounded failure manifest instead of a
 partial anchor. Optional sections are omitted whole and recorded in the
 receipt. Set `"transcript_mode": "excluded"` to prevent SessionStart from
 reading transcript files or paths and to mark transcript coverage N/A in the
-orientation score.
+orientation score. Set `"background_writes_allowed": false` to make the
+automatic PreCompact hook exit without creating a capture; manual capture
+remains a separate, explicit action.
 </details>
 
 <details>
@@ -227,7 +229,7 @@ A static file is passive. Your AI reads it, but it can't search it, rank it, tra
 
 - **Version-consistent protocol metadata** — the MCP initialize response derives its version from the shipped package metadata, preventing release-version drift
 - **Package-page accuracy** — the README shipped to npm identifies the current release before the tag and package are created
-- **161 automated tests**, plus a packed-artifact check that compares MCP metadata to the installed package version
+- **169 automated tests**, plus a packed-artifact check that compares MCP metadata to the installed package version
 
 **v0.3.2**
 
@@ -455,7 +457,7 @@ rekindle/
 npm test
 ```
 
-161 tests: storage CRUD + FTS5 ranking, orientation domain (gap detection, policy-aware scoring, project resolution, service, rendering), capture manager (parsing, limits, review tracking, formatting), delivery (atomic packet budget, receipts, guidance channels, Cursor privacy sentinels), hook setup for both hooks (schema, idempotency, corruption refusal), and MCP integration (all 10 tools plus package-derived server metadata).
+169 tests: storage CRUD + FTS5 ranking, orientation domain (gap detection, policy-aware scoring, project resolution, service, rendering), capture manager (parsing, limits, review tracking, formatting), delivery (atomic packet budget, receipts, guidance channels, Cursor privacy sentinels), hook setup for both hooks (schema, idempotency, corruption refusal), and MCP integration (all 10 tools plus package-derived server metadata).
 
 ## Roadmap
 

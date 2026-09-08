@@ -85,6 +85,27 @@ describe("migration", () => {
   });
 });
 
+describe("session provenance", () => {
+  it("rejects a session before insertion when provenance is required", () => {
+    storage.close();
+    storage = new RekindleStorage(join(tmpDir, "db", "memories.db"), true);
+    expect(() => storage.createSession({ summary: "must roll back" })).toThrow("write provenance is required");
+    expect(storage.sessionCount()).toBe(0);
+    expect(storage.listSessionWriteAudit()).toHaveLength(0);
+  });
+
+  it("audits session creation as attributed and unverified", () => {
+    const provenance = {
+      client: "codex", thread_id: "thread", request_id: "request",
+      author_identity: "ari", authorization_reference: "room-message-121",
+    };
+    const id = storage.createSession({ summary: "session" }, provenance);
+    expect(storage.listSessionWriteAudit(id)[0]).toMatchObject({
+      action: "create", author_identity: "ari", authorization_verified: 0,
+    });
+  });
+});
+
 describe("get", () => {
   it("returns null for nonexistent id", () => {
     expect(storage.get("nonexistent")).toBeNull();

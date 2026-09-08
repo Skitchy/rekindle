@@ -81,11 +81,13 @@ export function registerEndSession(
       session_id,
       provenance,
     }) => {
+      storage.validateWriteProvenance(provenance);
+      return storage.transaction(() => {
       const sessionId = storage.createSession({
         summary: "",
         transcriptPath: transcript_path,
         project,
-      });
+      }, provenance);
 
       const stored: StoredRecord[] = [];
       const endSessionOpts = (type: string) => ({
@@ -172,7 +174,7 @@ export function registerEndSession(
         storage.updateSession(sessionId, {
           summary,
           checkpointMemoryId: cpId,
-        });
+        }, provenance);
       }
 
       let captureWarning: string | undefined;
@@ -198,6 +200,7 @@ export function registerEndSession(
           },
         ],
       };
+      });
     }
   );
 }

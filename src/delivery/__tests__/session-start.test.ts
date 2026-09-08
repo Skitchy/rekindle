@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { runSessionStart } from "../session-start.js";
 import { writeReceipt } from "../receipts.js";
 import { HOOK_BUDGET_BYTES } from "../budget.js";
+import { RekindleStorage } from "../../storage/sqlite.js";
 
 let home: string;
 
@@ -55,7 +56,8 @@ describe("runSessionStart", () => {
     const identity = receipt.sections.find((s) => s.name === "identity");
     expect(identity?.disposition).toBe("failed");
     expect(packet).toContain("Rekindle Startup Failure");
-    expect(packet).toContain("Mandatory orientation sections did not fit");
+    expect(packet).toContain("Mandatory orientation sections required");
+    expect(packet).toContain("did not fit");
     const dropped = receipt.sections.filter((s) => s.disposition !== "included");
     expect(dropped.length).toBeGreaterThan(0);
   });
@@ -87,6 +89,52 @@ describe("runSessionStart", () => {
     expect(packet).not.toContain("transcript_missing");
   });
 
+  it("reads only the bounded tail when tail-read-only is selected", () => {
+    writeFileSync(join(home, ".rekindle", "policy.json"), JSON.stringify({ transcript_mode: "tail-read-only" }));
+    const transcriptDir = join(home, ".rekindle", "transcripts");
+    mkdirSync(transcriptDir);
+    writeFileSync(join(transcriptDir, "session.md"), "EARLY-SENTINEL" + "x".repeat(6000) + "TAIL-SENTINEL");
+    const { stdout } = runSessionStart({}, env());
+    const packet = JSON.parse(stdout as string).hookSpecificOutput.additionalContext;
+    expect(packet).not.toContain("EARLY-SENTINEL");
+    expect(packet).toContain("TAIL-SENTINEL");
+  });
+
+  it("scopes memory statistics to the resolved project", () => {
+    const root = join(home, "mapped");
+    mkdirSync(root);
+    writeFileSync(join(home, ".rekindle", "projects.json"), JSON.stringify({ schema_version: 1, projects: [{ name: "Mapped", root }] }));
+    const storage = new RekindleStorage(join(home, ".rekindle", "db", "memories.db"));
+    storage.store("mapped record", "lesson", 5, "Mapped");
+    storage.store("foreign record", "relationship", 5, "Foreign-Secret-Project");
+    storage.close();
+    const { stdout } = runSessionStart({ cwd: root }, env());
+    const packet = JSON.parse(stdout as string).hookSpecificOutput.additionalContext;
+    expect(packet).toContain("Mapped: 1");
+    expect(packet).not.toContain("Foreign-Secret-Project");
+  });
+
+  it("does not reveal project names or counts when the workspace is unknown", () => {
+    const storage = new RekindleStorage(join(home, ".rekindle", "db", "memories.db"));
+    storage.store("foreign record", "lesson", 5, "Foreign-Secret-Project");
+    storage.close();
+    const { stdout } = runSessionStart({ cwd: join(home, "unmapped") }, env());
+    const packet = JSON.parse(stdout as string).hookSpecificOutput.additionalContext;
+    expect(packet).toContain("UNKNOWN PROJECT");
+    expect(packet).toContain("0 total");
+    expect(packet).not.toContain("Foreign-Secret-Project");
+  });
+
+  it("emits a bounded failure packet for invalid policy", () => {
+    writeFileSync(join(home, ".rekindle", "policy.json"), "{ not json");
+    const { stdout, receipt } = runSessionStart({}, env());
+    const packet = JSON.parse(stdout as string).hookSpecificOutput.additionalContext;
+    expect(packet).toContain("Rekindle Startup Failure");
+    expect(receipt.emitted).toBe(true);
+    expect(receipt.error).not.toBeNull();
+    expect(receipt.emitted_bytes).toBeLessThanOrEqual(receipt.budget_bytes);
+  });
+
   it("bypasses on environment override with a truthful receipt and no stdout", () => {
     const { stdout, receipt } = runSessionStart(
       { session_id: "s2" },
@@ -108,13 +156,14 @@ describe("runSessionStart", () => {
     expect(receipt.bypass_reason).toBe("excluded agent type: clean-room");
   });
 
-  it("reports storage failure in the receipt instead of claiming delivery", () => {
+  it("reports storage failure in both a bounded packet and the receipt", () => {
     const { stdout, receipt } = runSessionStart(
       {},
       { REKINDLE_DB_PATH: "/dev/null/impossible/memories.db" }
     );
-    expect(stdout).toBeNull();
-    expect(receipt.emitted).toBe(false);
+    expect(stdout).not.toBeNull();
+    expect(receipt.emitted).toBe(true);
+    expect(JSON.parse(stdout as string).hookSpecificOutput.additionalContext).toContain("Startup Failure");
     expect(receipt.error).not.toBeNull();
     expect(receipt.bypassed).toBe(false);
   });

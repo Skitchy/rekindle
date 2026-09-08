@@ -5,6 +5,7 @@ import { OrientationService } from "../orientation/OrientationService.js";
 import { OrientationRenderer } from "../orientation/OrientationRenderer.js";
 import {
   budgetPacketAtomic,
+  startupFailurePacket,
   HOOK_BUDGET_BYTES,
   type PacketSection,
 } from "./budget.js";
@@ -85,6 +86,7 @@ export function runSessionStart(
     model_visible: "unmeasured",
     resolved_project: null,
     project_resolution: "unmeasured",
+    project_override_registered: null,
     policy_version: null,
     policy_hash: null,
     source_record_ids: [],
@@ -110,6 +112,12 @@ export function runSessionStart(
   try {
     policy = loadPolicy(root.baseDir);
     projectResolution = resolveProject(root.baseDir, input.cwd, env.REKINDLE_PROJECT);
+    base.budget_bytes = policy.policy.startup_budget_bytes;
+    base.policy_version = policy.policy.schema_version;
+    base.policy_hash = policy.hash;
+    base.resolved_project = projectResolution.project;
+    base.project_resolution = projectResolution.rule;
+    base.project_override_registered = projectResolution.override_registered;
     const storage = new RekindleStorage(root.dbPath);
     try {
       const orientation = new OrientationService(storage);
@@ -121,6 +129,7 @@ export function runSessionStart(
         transcriptMode: policy.policy.transcript_mode,
         allowCheckpointLookup: projectResolution.status === "resolved",
         allowContextFallback: false,
+        scopeStatsToProject: true,
       });
       if (result.checkpoint.id) sourceRecordIds.push(result.checkpoint.id);
       const byName = OrientationRenderer.toSections(result);
@@ -135,16 +144,28 @@ export function runSessionStart(
       storage.close();
     }
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const failure = startupFailurePacket(
+      `Orientation could not be assembled: ${message}`,
+      [{ name: "startup", disposition: "failed", emitted_bytes: 0, full_bytes: 0 }],
+      base.budget_bytes
+    );
     const receipt: DeliveryReceipt = {
       ...base,
-      emitted: false,
-      emitted_bytes: 0,
-      sections: [],
+      emitted: true,
+      emitted_bytes: failure.bytes,
+      sections: failure.sections,
       bypassed: false,
       bypass_reason: null,
-      error: err instanceof Error ? err.message : String(err),
+      error: message,
     };
-    return { stdout: null, packet: null, receipt, receiptPath };
+    const stdout = JSON.stringify({
+      hookSpecificOutput: {
+        hookEventName: "SessionStart",
+        additionalContext: failure.text,
+      },
+    });
+    return { stdout, packet: failure.text, receipt, receiptPath };
   }
 
   const packet = budgetPacketAtomic(
@@ -157,6 +178,7 @@ export function runSessionStart(
     budget_bytes: policy.policy.startup_budget_bytes,
     resolved_project: projectResolution.project,
     project_resolution: projectResolution.rule,
+    project_override_registered: projectResolution.override_registered,
     policy_version: policy.policy.schema_version,
     policy_hash: policy.hash,
     source_record_ids: sourceRecordIds,

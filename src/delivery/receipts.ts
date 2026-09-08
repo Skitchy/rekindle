@@ -23,6 +23,7 @@ export interface DeliveryReceipt {
   model_visible: "unmeasured";
   resolved_project: string | null;
   project_resolution: string;
+  project_override_registered: boolean | null;
   policy_version: number | null;
   policy_hash: string | null;
   source_record_ids: string[];

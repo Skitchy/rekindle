@@ -127,6 +127,19 @@ CREATE TABLE IF NOT EXISTS memory_write_audit (
     authorization_verified INTEGER NOT NULL DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS session_write_audit (
+    id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    action TEXT NOT NULL CHECK (action IN ('create','update')),
+    client TEXT,
+    thread_id TEXT,
+    request_id TEXT,
+    author_identity TEXT,
+    authorization_reference TEXT,
+    authorization_verified INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now'))
+);
 `;
 
 export class RekindleStorage {
@@ -190,12 +203,30 @@ export class RekindleStorage {
     return undefined;
   }
 
+  validateWriteProvenance(provenance?: WriteProvenance): WriteProvenance | undefined {
+    return this.checkedProvenance(provenance);
+  }
+
+  transaction<T>(operation: () => T): T {
+    return this.db.transaction(operation)();
+  }
+
   private auditWrite(memoryId: string, action: "store" | "update" | "delete", provenance?: WriteProvenance): void {
     this.db.prepare(`
       INSERT INTO memory_write_audit
         (id, memory_id, action, client, thread_id, request_id, author_identity, authorization_reference, authorization_verified)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
     `).run(generateId(), memoryId, action, provenance?.client ?? null, provenance?.thread_id ?? null,
+      provenance?.request_id ?? null, provenance?.author_identity ?? null,
+      provenance?.authorization_reference ?? null);
+  }
+
+  private auditSession(sessionId: string, action: "create" | "update", provenance?: WriteProvenance): void {
+    this.db.prepare(`
+      INSERT INTO session_write_audit
+        (id, session_id, action, client, thread_id, request_id, author_identity, authorization_reference, authorization_verified)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+    `).run(generateId(), sessionId, action, provenance?.client ?? null, provenance?.thread_id ?? null,
       provenance?.request_id ?? null, provenance?.author_identity ?? null,
       provenance?.authorization_reference ?? null);
   }
@@ -214,22 +245,15 @@ export class RekindleStorage {
         writer_client, writer_thread_id, request_id, author_identity, authorization_reference, authorization_verified)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
     `);
-    stmt.run(
-      id,
-      content,
-      category,
-      Math.max(1, Math.min(10, importance)),
-      project ?? null,
-      opts?.type ?? "memory",
-      opts?.source ?? "manual",
-      opts?.session_id ?? null,
-      provenance?.client ?? null,
-      provenance?.thread_id ?? null,
-      provenance?.request_id ?? null,
-      provenance?.author_identity ?? null,
-      provenance?.authorization_reference ?? null
-    );
-    this.auditWrite(id, "store", provenance);
+    this.transaction(() => {
+      stmt.run(
+        id, content, category, Math.max(1, Math.min(10, importance)), project ?? null,
+        opts?.type ?? "memory", opts?.source ?? "manual", opts?.session_id ?? null,
+        provenance?.client ?? null, provenance?.thread_id ?? null, provenance?.request_id ?? null,
+        provenance?.author_identity ?? null, provenance?.authorization_reference ?? null
+      );
+      this.auditWrite(id, "store", provenance);
+    });
     return id;
   }
 
@@ -346,12 +370,12 @@ export class RekindleStorage {
       : existing.importance;
     const now = new Date().toISOString().replace("T", " ").slice(0, 19);
 
-    this.db
-      .prepare(
+    this.transaction(() => {
+      this.db.prepare(
         `UPDATE memories SET content = ?, category = ?, importance = ?, updated_at = ? WHERE id = ?`
-      )
-      .run(content, category, importance, now, id);
-    this.auditWrite(id, "update", checked);
+      ).run(content, category, importance, now, id);
+      this.auditWrite(id, "update", checked);
+    });
     return true;
   }
 
@@ -370,18 +394,20 @@ export class RekindleStorage {
     return this.db.prepare(`SELECT * FROM memory_write_audit ORDER BY created_at, rowid`).all() as Array<Record<string, unknown>>;
   }
 
-  stats(): MemoryStats {
+  stats(project?: string): MemoryStats {
+    const where = project ? ` WHERE project = ?` : "";
+    const params = project ? [project] : [];
     const total = (
-      this.db.prepare(`SELECT COUNT(*) as count FROM memories`).get() as {
+      this.db.prepare(`SELECT COUNT(*) as count FROM memories${where}`).get(...params) as {
         count: number;
       }
     ).count;
 
     const catRows = this.db
       .prepare(
-        `SELECT category, COUNT(*) as count FROM memories GROUP BY category`
+        `SELECT category, COUNT(*) as count FROM memories${where} GROUP BY category`
       )
-      .all() as { category: string; count: number }[];
+      .all(...params) as { category: string; count: number }[];
     const byCategory: Record<string, number> = {};
     for (const row of catRows) {
       byCategory[row.category] = row.count;
@@ -389,9 +415,9 @@ export class RekindleStorage {
 
     const projRows = this.db
       .prepare(
-        `SELECT COALESCE(project, '(none)') as project, COUNT(*) as count FROM memories GROUP BY project`
+        `SELECT COALESCE(project, '(none)') as project, COUNT(*) as count FROM memories${where} GROUP BY project`
       )
-      .all() as { project: string; count: number }[];
+      .all(...params) as { project: string; count: number }[];
     const byProject: Record<string, number> = {};
     for (const row of projRows) {
       byProject[row.project] = row.count;
@@ -400,9 +426,9 @@ export class RekindleStorage {
     const recentCount = (
       this.db
         .prepare(
-          `SELECT COUNT(*) as count FROM memories WHERE created_at > datetime('now', '-7 days')`
+          `SELECT COUNT(*) as count FROM memories WHERE created_at > datetime('now', '-7 days')${project ? " AND project = ?" : ""}`
         )
-        .get() as { count: number }
+        .get(...params) as { count: number }
     ).count;
 
     return { total, byCategory, byProject, recentCount };
@@ -443,7 +469,8 @@ export class RekindleStorage {
     checkpointMemoryId?: string;
     gapCount?: number;
     orientationScore?: number;
-  }): string {
+  }, provenance?: WriteProvenance): string {
+    const checked = this.checkedProvenance(provenance);
     const id = generateId();
     const now = new Date().toISOString().replace("T", " ").slice(0, 19);
     this.db
@@ -462,13 +489,16 @@ export class RekindleStorage {
         data.gapCount ?? 0,
         data.orientationScore ?? null
       );
+    this.auditSession(id, "create", checked);
     return id;
   }
 
   updateSession(
     id: string,
-    data: { summary?: string; checkpointMemoryId?: string; gapCount?: number; orientationScore?: number }
+    data: { summary?: string; checkpointMemoryId?: string; gapCount?: number; orientationScore?: number },
+    provenance?: WriteProvenance
   ): boolean {
+    const checked = this.checkedProvenance(provenance);
     const existing = this.getSession(id);
     if (!existing) return false;
 
@@ -483,6 +513,7 @@ export class RekindleStorage {
         data.orientationScore ?? existing.orientation_score,
         id
       );
+    this.auditSession(id, "update", checked);
     return true;
   }
 
@@ -491,6 +522,15 @@ export class RekindleStorage {
       .prepare(`SELECT * FROM sessions WHERE id = ?`)
       .get(id) as Session | undefined;
     return row ?? null;
+  }
+
+  listSessionWriteAudit(sessionId?: string): Array<Record<string, unknown>> {
+    if (sessionId) return this.db.prepare(`SELECT * FROM session_write_audit WHERE session_id = ? ORDER BY created_at, rowid`).all(sessionId) as Array<Record<string, unknown>>;
+    return this.db.prepare(`SELECT * FROM session_write_audit ORDER BY created_at, rowid`).all() as Array<Record<string, unknown>>;
+  }
+
+  sessionCount(): number {
+    return (this.db.prepare(`SELECT COUNT(*) AS count FROM sessions`).get() as { count: number }).count;
   }
 
   close(): void {

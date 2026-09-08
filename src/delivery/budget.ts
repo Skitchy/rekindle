@@ -27,7 +27,7 @@ export interface PacketSection {
 
 export interface SectionDisposition {
   name: string;
-  disposition: "included" | "truncated" | "dropped" | "failed";
+  disposition: "included" | "truncated" | "dropped" | "failed" | "missing";
   /** Bytes of this section actually present in the emitted packet. */
   emitted_bytes: number;
   /** Bytes the section would have occupied unbudgeted. */
@@ -45,32 +45,32 @@ export function budgetPacketAtomic(
   budgetBytes: number = HOOK_BUDGET_BYTES
 ): BudgetedPacket {
   const mandatory = new Set(mandatoryNames);
+  const present = new Set(sections.map((section) => section.name));
+  const missing = mandatoryNames.filter((name) => !present.has(name));
   const required = sections.filter((section) => mandatory.has(section.name));
   const optional = sections.filter((section) => !mandatory.has(section.name));
   const requiredText = required.map((section) => section.content).join(SEPARATOR);
   const requiredBytes = byteLength(requiredText);
 
-  if (requiredBytes > budgetBytes) {
-    const dispositions: SectionDisposition[] = sections.map((section) => ({
-      name: section.name,
-      disposition: mandatory.has(section.name) ? "failed" : "dropped",
-      emitted_bytes: 0,
-      full_bytes: byteLength(section.content),
-    }));
-    const lines = dispositions.map(
-      (section) => `- ${section.name}: ${section.disposition}; ${section.full_bytes} bytes`
-    );
-    const failure = [
-      "## Rekindle Startup Failure",
-      "Mandatory orientation sections did not fit and were not partially emitted.",
-      `Budget: ${budgetBytes} bytes; mandatory content: ${requiredBytes} bytes.`,
-      "Manifest:",
-      ...lines,
-    ].join("\n");
-    if (byteLength(failure) > budgetBytes) {
-      throw new Error(`startup failure manifest exceeds its ${budgetBytes}-byte budget`);
-    }
-    return { text: failure, bytes: byteLength(failure), budget_bytes: budgetBytes, sections: dispositions };
+  if (missing.length > 0 || requiredBytes > budgetBytes) {
+    const dispositions: SectionDisposition[] = [
+      ...sections.map((section): SectionDisposition => ({
+        name: section.name,
+        disposition: mandatory.has(section.name) ? "failed" : "dropped",
+        emitted_bytes: 0,
+        full_bytes: byteLength(section.content),
+      })),
+      ...missing.map((name): SectionDisposition => ({
+        name,
+        disposition: "missing",
+        emitted_bytes: 0,
+        full_bytes: 0,
+      })),
+    ];
+    const reason = missing.length > 0
+      ? `Mandatory orientation sections were missing: ${missing.join(", ")}. No partial startup packet was emitted.`
+      : `Mandatory orientation sections required ${requiredBytes} bytes and did not fit. No partial startup packet was emitted.`;
+    return startupFailurePacket(reason, dispositions, budgetBytes);
   }
 
   const parts = required.map((section) => section.content);
@@ -100,6 +100,28 @@ export interface BudgetedPacket {
   bytes: number;
   budget_bytes: number;
   sections: SectionDisposition[];
+}
+
+export function startupFailurePacket(
+  reason: string,
+  sections: SectionDisposition[],
+  budgetBytes: number = HOOK_BUDGET_BYTES
+): BudgetedPacket {
+  const safeReason = truncateUtf8(reason.replace(/\s+/g, " ").trim(), 384);
+  const lines = sections.map(
+    (section) => `- ${section.name}: ${section.disposition}; ${section.full_bytes} bytes`
+  );
+  const text = [
+    "## Rekindle Startup Failure",
+    safeReason,
+    `Budget: ${budgetBytes} bytes.`,
+    "Manifest:",
+    ...lines,
+  ].join("\n");
+  if (byteLength(text) > budgetBytes) {
+    throw new Error(`startup failure manifest exceeds its ${budgetBytes}-byte budget`);
+  }
+  return { text, bytes: byteLength(text), budget_bytes: budgetBytes, sections };
 }
 
 function byteLength(s: string): number {

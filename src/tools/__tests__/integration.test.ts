@@ -266,6 +266,25 @@ describe("MCP server integration", () => {
     expect(data.message).toContain("Session captured");
   });
 
+  it("fails end_session before any row is written when provenance is required", async () => {
+    const requiredStorage = new RekindleStorage(join(tmpDir, "required", "memories.db"), true);
+    const requiredServer = createServer(requiredStorage, new CaptureManager(tmpDir));
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const requiredClient = new Client({ name: "required-test", version: "1.0" });
+    await Promise.all([requiredClient.connect(clientTransport), requiredServer.connect(serverTransport)]);
+    const result = await requiredClient.callTool({
+      name: "end_session",
+      arguments: { checkpoint: "must not persist" },
+    });
+    expect(result.isError).toBe(true);
+    expect(requiredStorage.sessionCount()).toBe(0);
+    expect(requiredStorage.list()).toHaveLength(0);
+    expect(requiredStorage.listSessionWriteAudit()).toHaveLength(0);
+    await requiredClient.close();
+    await requiredServer.close();
+    requiredStorage.close();
+  });
+
   it("end_session stores full payload", async () => {
     const result = await client.callTool({
       name: "end_session",

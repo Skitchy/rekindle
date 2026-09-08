@@ -63,6 +63,16 @@ describe("budgetPacketAtomic", () => {
     expect(p.text).toBe("required");
     expect(p.sections[1].disposition).toBe("dropped");
   });
+
+  it("fails and names a missing mandatory section", () => {
+    const p = budgetPacketAtomic(
+      [{ name: "identity", content: "present" }],
+      ["identity", "checkpoint"],
+      1024
+    );
+    expect(p.text).toContain("Mandatory orientation sections were missing: checkpoint");
+    expect(p.sections.find((s) => s.name === "checkpoint")?.disposition).toBe("missing");
+  });
 });
 
 describe("budgetPacket", () => {

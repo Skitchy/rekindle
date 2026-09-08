@@ -22,7 +22,7 @@ export class OrientationRenderer {
       const label = result.project.project ?? "UNKNOWN PROJECT";
       sections.set(
         "project",
-        `## Project Scope\n${label}\n\nResolution: ${result.project.rule}${result.project.cwd ? `\nWorkspace: ${result.project.cwd}` : ""}`
+        `## Project Scope\n${label}\n\nResolution: ${result.project.rule}${result.project.override_registered !== null ? `\nOverride registered: ${result.project.override_registered ? "yes" : "no"}` : ""}${result.project.cwd ? `\nWorkspace: ${result.project.cwd}` : ""}`
       );
     }
 

@@ -26,7 +26,7 @@ export const DEFAULT_POLICY: ContinuityPolicy = {
   startup_budget_bytes: 8000,
   mandatory_sections: ["identity", "project", "checkpoint", "policy"],
   optional_sections: ["gaps", "score", "memories", "transcript"],
-  background_writes_allowed: false,
+  background_writes_allowed: true,
 };
 
 const ALLOWED_SECTIONS = new Set([

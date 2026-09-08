@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { closeSync, readFileSync, readdirSync, existsSync, openSync, readSync, statSync } from "node:fs";
 import { join } from "node:path";
 import type { RekindleStorage } from "../storage/sqlite.js";
 import type { OrientationConfig, OrientationResult } from "./types.js";
@@ -6,7 +6,8 @@ import { detectGaps } from "./GapDetector.js";
 import { calculateScore } from "./Scorer.js";
 
 function findLatestTranscript(
-  transcriptDir: string
+  transcriptDir: string,
+  tailOnly: boolean = false
 ): { path: string; name: string; content: string } | null {
   if (!existsSync(transcriptDir)) return null;
 
@@ -18,7 +19,23 @@ function findLatestTranscript(
   if (files.length === 0) return null;
 
   const filePath = join(transcriptDir, files[0]);
-  const content = readFileSync(filePath, "utf-8");
+  let content: string;
+  if (tailOnly) {
+    const size = statSync(filePath).size;
+    const length = Math.min(size, 4096);
+    const buffer = Buffer.alloc(length);
+    const fd = openSync(filePath, "r");
+    try {
+      readSync(fd, buffer, 0, length, size - length);
+    } finally {
+      closeSync(fd);
+    }
+    let start = 0;
+    while (start < buffer.length && (buffer[start] & 0b11000000) === 0b10000000) start++;
+    content = buffer.subarray(start).toString("utf-8");
+  } else {
+    content = readFileSync(filePath, "utf-8");
+  }
   return { path: filePath, name: files[0], content };
 }
 
@@ -35,14 +52,20 @@ export class OrientationService {
       if (identityLoaded) identityContent = raw;
     }
 
-    const stats = this.storage.stats();
+    const stats = config.scopeStatsToProject
+      ? config.project
+        ? this.storage.stats(config.project)
+        : { total: 0, byCategory: {}, byProject: {}, recentCount: 0 }
+      : this.storage.stats();
     const checkpoint = config.allowCheckpointLookup === false
       ? null
       : this.storage.getLatestCheckpoint(config.project, {
           fallbackToContext: config.allowContextFallback ?? true,
         });
     const transcriptMode = config.transcriptMode ?? "captured";
-    const transcript = transcriptMode === "excluded" ? null : findLatestTranscript(config.transcriptDir);
+    const transcript = transcriptMode === "excluded"
+      ? null
+      : findLatestTranscript(config.transcriptDir, transcriptMode === "tail-read-only");
     const hasTranscript = transcript !== null;
     const hasCheckpoint = checkpoint !== null;
 
@@ -66,7 +89,9 @@ export class OrientationService {
 
     const preview =
       transcript && transcript.content.length > 1500
-        ? transcript.content.slice(0, 1500) + "\n\n[...truncated]"
+        ? transcriptMode === "tail-read-only"
+          ? "[...earlier transcript omitted]\n\n" + transcript.content.slice(-1500)
+          : transcript.content.slice(0, 1500) + "\n\n[...truncated]"
         : transcript?.content;
 
     return {

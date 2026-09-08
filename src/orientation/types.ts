@@ -10,6 +10,7 @@ export interface OrientationConfig {
   transcriptMode?: TranscriptMode;
   allowCheckpointLookup?: boolean;
   allowContextFallback?: boolean;
+  scopeStatsToProject?: boolean;
 }
 
 export interface Gap {

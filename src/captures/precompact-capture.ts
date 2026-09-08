@@ -3,6 +3,7 @@
 import { CaptureManager } from "./CaptureManager.js";
 import { resolveStorageRoot } from "../storage/root.js";
 import type { HookInput } from "./types.js";
+import { loadPolicy } from "../config/policy.js";
 
 async function readStdin(): Promise<string> {
   const chunks: Buffer[] = [];
@@ -29,6 +30,11 @@ async function main(): Promise<void> {
   }
 
   const { baseDir } = resolveStorageRoot({ cwd: input.cwd });
+  const { policy } = loadPolicy(baseDir);
+  if (!policy.background_writes_allowed) {
+    console.error("PreCompact capture skipped: background writes are disabled by .rekindle/policy.json");
+    process.exit(0);
+  }
   const manager = new CaptureManager(baseDir);
   const entry = manager.capture(input);
 
