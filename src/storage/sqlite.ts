@@ -3,6 +3,8 @@ import { randomBytes } from "node:crypto";
 import { join, dirname } from "node:path";
 import { mkdirSync, existsSync } from "node:fs";
 import { prepareWriteContext, type WriteContext } from "../provenance/keys.js";
+import { stateHash } from "../provenance/canonical.js";
+import { buildChainRow, type AuditProvenance, type ChainHead } from "../provenance/chain.js";
 
 export interface Memory {
   id: string;
@@ -72,9 +74,12 @@ function generateId(): string {
 export type ProvenanceWriteErrorCode =
   | "maintenance_locked"
   | "reprepare_required"
-  | "chained_path_unavailable"
   | "store_unprepared"
-  | "unsafe_nesting";
+  | "unsafe_nesting"
+  | "unchained_edit"
+  | "baseline_invalid"
+  | "chain_head_missing"
+  | "chain_head_invalid";
 
 export class ProvenanceWriteError extends Error {
   readonly code: ProvenanceWriteErrorCode;
@@ -155,9 +160,25 @@ const NONCE_CHECK = "CHECK (nonce IS NULL OR (typeof(nonce) = 'blob' AND length(
 
 interface ProvenanceMeta {
   store_id: string | null;
+  format_version: number | null;
   canonical: number | null;
+  active_key_id: string | null;
   chain_enabled: number;
+  baseline_seq: number | null;
   maintenance_lock_token: string | null;
+}
+
+// Set for the duration of a chained batch (plan phase 4): the verified context and store identity.
+interface ChainedBatch {
+  context: WriteContext;
+  store_id: string;
+  format_version: number;
+}
+
+type StateKind = "memory" | "session";
+
+function eventTimestamp(): string {
+  return new Date().toISOString().replace("T", " ").slice(0, 19);
 }
 
 const SCHEMA = `
@@ -343,7 +364,10 @@ export class RekindleStorage {
 
   private readMeta(): ProvenanceMeta {
     return this.db
-      .prepare(`SELECT store_id, canonical, chain_enabled, maintenance_lock_token FROM provenance_meta WHERE id = 1`)
+      .prepare(
+        `SELECT store_id, format_version, canonical, active_key_id, chain_enabled, baseline_seq, maintenance_lock_token
+         FROM provenance_meta WHERE id = 1`
+      )
       .get() as ProvenanceMeta;
   }
 
@@ -362,37 +386,205 @@ export class RekindleStorage {
         throw new ProvenanceWriteError("maintenance_locked", "the store is under maintenance; semantic writes are refused");
       }
       if (meta.chain_enabled === 1) {
-        if (context === null) throw new ReprepareSignal();
-        throw new ProvenanceWriteError("chained_path_unavailable", "chained writes are not implemented yet");
+        // A context prepared for another store or key is stale: re-prepare outside the lock.
+        if (context === null || context.store_id !== meta.store_id || context.key_id !== meta.active_key_id) {
+          throw new ReprepareSignal();
+        }
+        this.checkChainHead(meta);
+        this.chained = { context, store_id: context.store_id, format_version: meta.format_version as number };
       }
       this.semanticDepth++;
       try {
         return operation();
       } finally {
         this.semanticDepth--;
+        this.chained = null;
       }
     });
     return run.immediate();
   }
 
-  private auditWrite(memoryId: string, action: "store" | "update" | "delete", provenance?: WriteProvenance): void {
-    this.db.prepare(`
-      INSERT INTO memory_write_audit
-        (id, memory_id, action, client, thread_id, request_id, author_identity, authorization_reference, authorization_verified)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
-    `).run(generateId(), memoryId, action, provenance?.client ?? null, provenance?.thread_id ?? null,
-      provenance?.request_id ?? null, provenance?.author_identity ?? null,
-      provenance?.authorization_reference ?? null);
+  private chained: ChainedBatch | null = null;
+
+  // Once per outer chained batch, under the lock, before the operation runs.
+  private checkChainHead(meta: ProvenanceMeta): void {
+    const head = this.db
+      .prepare(`SELECT seq, store_id, format_version FROM provenance_chain ORDER BY seq DESC LIMIT 1`)
+      .get() as { seq: number; store_id: string; format_version: number } | undefined;
+    if (!head) throw new ProvenanceWriteError("chain_head_missing", "the chain is enabled but has no entries");
+    if (head.store_id !== meta.store_id || head.format_version !== meta.format_version) {
+      throw new ProvenanceWriteError("chain_head_invalid", "the chain head belongs to another store or format");
+    }
+    // Every chain insert leaves sqlite_sequence equal to MAX(seq); anything else means rows were removed.
+    const sequence = this.db
+      .prepare(`SELECT seq FROM sqlite_sequence WHERE name = 'provenance_chain'`)
+      .get() as { seq: number } | undefined;
+    if (!sequence || sequence.seq !== head.seq) {
+      throw new ProvenanceWriteError("chain_head_invalid", "the chain sequence does not match its head");
+    }
+    const baseline = this.db
+      .prepare(`SELECT audit_kind, store_id, format_version FROM provenance_chain WHERE seq = ?`)
+      .get(meta.baseline_seq) as { audit_kind: string; store_id: string; format_version: number } | undefined;
+    if (
+      !baseline ||
+      baseline.audit_kind !== "baseline" ||
+      baseline.store_id !== meta.store_id ||
+      baseline.format_version !== meta.format_version
+    ) {
+      throw new ProvenanceWriteError("baseline_invalid", "baseline_seq does not identify this store's baseline entry");
+    }
   }
 
-  private auditSession(sessionId: string, action: "create" | "update", provenance?: WriteProvenance): void {
-    this.db.prepare(`
-      INSERT INTO session_write_audit
-        (id, session_id, action, client, thread_id, request_id, author_identity, authorization_reference, authorization_verified)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
-    `).run(generateId(), sessionId, action, provenance?.client ?? null, provenance?.thread_id ?? null,
+  // The current head inside the batch: re-read each time, so a rolled-back savepoint never leaves
+  // a stale in-memory head behind.
+  private chainHead(): ChainHead {
+    return this.db
+      .prepare(`SELECT seq, entry_hash FROM provenance_chain ORDER BY seq DESC LIMIT 1`)
+      .get() as ChainHead;
+  }
+
+  // Latest chained state of a target: its newest event entry for this store and format, else its
+  // baseline manifest leaf. undefined means never chained; a latest delete means absent.
+  private latestChainedState(kind: StateKind, targetId: string): { present: boolean; state_hash: string | null } | undefined {
+    const batch = this.chained as ChainedBatch;
+    const entry = this.db
+      .prepare(
+        `SELECT action, state_hash FROM provenance_chain
+         WHERE store_id = ? AND format_version = ? AND audit_kind = ? AND target_id = ?
+         ORDER BY seq DESC LIMIT 1`
+      )
+      .get(batch.store_id, batch.format_version, kind, targetId) as { action: string; state_hash: string | null } | undefined;
+    if (entry) return entry.action === "delete" ? { present: false, state_hash: null } : { present: true, state_hash: entry.state_hash };
+    const leaf = this.db
+      .prepare(`SELECT state_hash FROM provenance_baseline_manifest WHERE kind = ? AND target_id = ?`)
+      .get(kind, targetId) as { state_hash: string } | undefined;
+    return leaf ? { present: true, state_hash: leaf.state_hash } : undefined;
+  }
+
+  // Pre-state check for update and delete, before any mutation. Returns null when the row is
+  // absent and the chain agrees, so callers keep their existing false/no-audit behavior.
+  private verifiedPreState(kind: StateKind, targetId: string): { row: Record<string, unknown>; state_hash: string } | null {
+    const table = kind === "memory" ? "memories" : "sessions";
+    const row = this.db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(targetId) as Record<string, unknown> | undefined;
+    const latest = this.latestChainedState(kind, targetId);
+    if (!row) {
+      if (latest?.present) throw new ProvenanceWriteError("unchained_edit", `${kind} ${targetId} is missing but the chain says it exists`);
+      return null;
+    }
+    if (!latest?.present) throw new ProvenanceWriteError("unchained_edit", `${kind} ${targetId} has no chained state`);
+    const nonce = row.nonce;
+    if (!(nonce instanceof Uint8Array) || nonce.length !== 32) {
+      throw new ProvenanceWriteError("unchained_edit", `${kind} ${targetId} has no valid nonce`);
+    }
+    const current = stateHash(kind, nonce, row);
+    if (current !== latest.state_hash) {
+      throw new ProvenanceWriteError("unchained_edit", `${kind} ${targetId} was changed outside the chain`);
+    }
+    return { row, state_hash: current };
+  }
+
+  private currentStateHash(kind: StateKind, targetId: string): string {
+    const table = kind === "memory" ? "memories" : "sessions";
+    const row = this.db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(targetId) as Record<string, unknown>;
+    return stateHash(kind, row.nonce as Uint8Array, row);
+  }
+
+  private appendChain(event: {
+    kind: StateKind;
+    auditId: string;
+    targetId: string;
+    action: "store" | "update" | "delete" | "create";
+    state_hash: string | null;
+    prior_state_hash: string | null;
+    eventAt: string;
+  }): void {
+    const batch = this.chained as ChainedBatch;
+    const auditTable = event.kind === "memory" ? "memory_write_audit" : "session_write_audit";
+    // Bind the provenance exactly as stored in the audit row.
+    const provenance = this.db
+      .prepare(
+        `SELECT client, thread_id, request_id, author_identity, authorization_reference, authorization_verified
+         FROM ${auditTable} WHERE id = ?`
+      )
+      .get(event.auditId) as AuditProvenance;
+    const row = buildChainRow({
+      head: this.chainHead(),
+      store_id: batch.store_id,
+      key: batch.context.key,
+      key_id: batch.context.key_id,
+      audit_kind: event.kind,
+      audit_id: event.auditId,
+      target_id: event.targetId,
+      action: event.action,
+      state_hash: event.state_hash,
+      prior_state_hash: event.prior_state_hash,
+      created_at: event.eventAt,
+      provenance,
+    });
+    this.db
+      .prepare(
+        `INSERT INTO provenance_chain (seq, store_id, format_version, audit_kind, audit_id, target_id, action,
+           state_hash, prior_state_hash, meta_payload, prev_hash, entry_hash, key_id, signature, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        row.seq, row.store_id, row.format_version, row.audit_kind, row.audit_id, row.target_id, row.action,
+        row.state_hash, row.prior_state_hash, row.meta_payload, row.prev_hash, row.entry_hash, row.key_id,
+        row.signature, row.created_at
+      );
+  }
+
+  // createdAt is passed only on the chained path (event_at); otherwise the DB default applies as before.
+  private auditWrite(
+    memoryId: string,
+    action: "store" | "update" | "delete",
+    provenance?: WriteProvenance,
+    createdAt?: string
+  ): string {
+    const id = generateId();
+    const params = [id, memoryId, action, provenance?.client ?? null, provenance?.thread_id ?? null,
       provenance?.request_id ?? null, provenance?.author_identity ?? null,
-      provenance?.authorization_reference ?? null);
+      provenance?.authorization_reference ?? null];
+    if (createdAt === undefined) {
+      this.db.prepare(`
+        INSERT INTO memory_write_audit
+          (id, memory_id, action, client, thread_id, request_id, author_identity, authorization_reference, authorization_verified)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+      `).run(...params);
+    } else {
+      this.db.prepare(`
+        INSERT INTO memory_write_audit
+          (id, memory_id, action, client, thread_id, request_id, author_identity, authorization_reference, authorization_verified, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+      `).run(...params, createdAt);
+    }
+    return id;
+  }
+
+  private auditSession(
+    sessionId: string,
+    action: "create" | "update",
+    provenance?: WriteProvenance,
+    createdAt?: string
+  ): string {
+    const id = generateId();
+    const params = [id, sessionId, action, provenance?.client ?? null, provenance?.thread_id ?? null,
+      provenance?.request_id ?? null, provenance?.author_identity ?? null,
+      provenance?.authorization_reference ?? null];
+    if (createdAt === undefined) {
+      this.db.prepare(`
+        INSERT INTO session_write_audit
+          (id, session_id, action, client, thread_id, request_id, author_identity, authorization_reference, authorization_verified)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+      `).run(...params);
+    } else {
+      this.db.prepare(`
+        INSERT INTO session_write_audit
+          (id, session_id, action, client, thread_id, request_id, author_identity, authorization_reference, authorization_verified, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+      `).run(...params, createdAt);
+    }
+    return id;
   }
 
   store(
@@ -409,14 +601,30 @@ export class RekindleStorage {
         writer_client, writer_thread_id, request_id, author_identity, authorization_reference, authorization_verified)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
     `);
+    const values = [
+      id, content, category, Math.max(1, Math.min(10, importance)), project ?? null,
+      opts?.type ?? "memory", opts?.source ?? "manual", opts?.session_id ?? null,
+      provenance?.client ?? null, provenance?.thread_id ?? null, provenance?.request_id ?? null,
+      provenance?.author_identity ?? null, provenance?.authorization_reference ?? null,
+    ];
     this.semanticWrite(() => {
-      stmt.run(
-        id, content, category, Math.max(1, Math.min(10, importance)), project ?? null,
-        opts?.type ?? "memory", opts?.source ?? "manual", opts?.session_id ?? null,
-        provenance?.client ?? null, provenance?.thread_id ?? null, provenance?.request_id ?? null,
-        provenance?.author_identity ?? null, provenance?.authorization_reference ?? null
-      );
-      this.auditWrite(id, "store", provenance);
+      if (!this.chained) {
+        stmt.run(...values);
+        this.auditWrite(id, "store", provenance);
+        return;
+      }
+      const eventAt = eventTimestamp();
+      this.db.prepare(`
+        INSERT INTO memories (id, content, category, importance, project, type, source, session_id,
+          writer_client, writer_thread_id, request_id, author_identity, authorization_reference, authorization_verified,
+          created_at, updated_at, nonce)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+      `).run(...values, eventAt, eventAt, randomBytes(32));
+      const auditId = this.auditWrite(id, "store", provenance, eventAt);
+      this.appendChain({
+        kind: "memory", auditId, targetId: id, action: "store",
+        state_hash: this.currentStateHash("memory", id), prior_state_hash: null, eventAt,
+      });
     });
     return id;
   }
@@ -526,7 +734,9 @@ export class RekindleStorage {
     const checked = this.checkedProvenance(provenance);
     // The current row is read under the write lock, so the update builds on committed state.
     return this.semanticWrite(() => {
-      const existing = this.get(id);
+      const eventAt = this.chained ? eventTimestamp() : null;
+      // On the chained path, the live row must match its latest chained state before any mutation.
+      const existing = this.chained ? (this.verifiedPreState("memory", id)?.row as Memory | undefined) : this.get(id);
       if (!existing) return false;
 
       const content = fields.content ?? existing.content;
@@ -534,12 +744,20 @@ export class RekindleStorage {
       const importance = fields.importance
         ? Math.max(1, Math.min(10, fields.importance))
         : existing.importance;
-      const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+      const now = eventAt ?? new Date().toISOString().replace("T", " ").slice(0, 19);
 
       this.db.prepare(
         `UPDATE memories SET content = ?, category = ?, importance = ?, updated_at = ? WHERE id = ?`
       ).run(content, category, importance, now, id);
-      this.auditWrite(id, "update", checked);
+      if (eventAt === null) {
+        this.auditWrite(id, "update", checked);
+        return true;
+      }
+      const auditId = this.auditWrite(id, "update", checked, eventAt);
+      this.appendChain({
+        kind: "memory", auditId, targetId: id, action: "update",
+        state_hash: this.currentStateHash("memory", id), prior_state_hash: null, eventAt,
+      });
       return true;
     });
   }
@@ -547,9 +765,21 @@ export class RekindleStorage {
   delete(id: string, provenance?: WriteProvenance): boolean {
     const checked = this.checkedProvenance(provenance);
     return this.semanticWrite(() => {
-      const result = this.db.prepare(`DELETE FROM memories WHERE id = ?`).run(id);
-      if (result.changes > 0) this.auditWrite(id, "delete", checked);
-      return result.changes > 0;
+      if (!this.chained) {
+        const result = this.db.prepare(`DELETE FROM memories WHERE id = ?`).run(id);
+        if (result.changes > 0) this.auditWrite(id, "delete", checked);
+        return result.changes > 0;
+      }
+      const eventAt = eventTimestamp();
+      const pre = this.verifiedPreState("memory", id);
+      if (!pre) return false;
+      this.db.prepare(`DELETE FROM memories WHERE id = ?`).run(id);
+      const auditId = this.auditWrite(id, "delete", checked, eventAt);
+      this.appendChain({
+        kind: "memory", auditId, targetId: id, action: "delete",
+        state_hash: null, prior_state_hash: pre.state_hash, eventAt,
+      });
+      return true;
     });
   }
 
@@ -638,23 +868,35 @@ export class RekindleStorage {
     const id = generateId();
     const now = new Date().toISOString().replace("T", " ").slice(0, 19);
     this.semanticWrite(() => {
+      // The chained path takes one event_at inside the lock for both timestamps, plus a fresh nonce.
+      const eventAt = this.chained ? eventTimestamp() : null;
+      const at = eventAt ?? now;
       this.db
         .prepare(
-          `INSERT INTO sessions (id, started_at, ended_at, summary, transcript_path, project, checkpoint_memory_id, gap_count, orientation_score)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          `INSERT INTO sessions (id, started_at, ended_at, summary, transcript_path, project, checkpoint_memory_id, gap_count, orientation_score, nonce)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
         .run(
           id,
-          now,
-          now,
+          at,
+          at,
           data.summary,
           data.transcriptPath ?? null,
           data.project ?? null,
           data.checkpointMemoryId ?? null,
           data.gapCount ?? 0,
-          data.orientationScore ?? null
+          data.orientationScore ?? null,
+          eventAt === null ? null : randomBytes(32)
         );
-      this.auditSession(id, "create", checked);
+      if (eventAt === null) {
+        this.auditSession(id, "create", checked);
+        return;
+      }
+      const auditId = this.auditSession(id, "create", checked, eventAt);
+      this.appendChain({
+        kind: "session", auditId, targetId: id, action: "create",
+        state_hash: this.currentStateHash("session", id), prior_state_hash: null, eventAt,
+      });
     });
     return id;
   }
@@ -666,7 +908,9 @@ export class RekindleStorage {
   ): boolean {
     const checked = this.checkedProvenance(provenance);
     return this.semanticWrite(() => {
-      const existing = this.getSession(id);
+      // Session updates set no domain timestamp; event_at goes to the audit and chain rows only.
+      const eventAt = this.chained ? eventTimestamp() : null;
+      const existing = this.chained ? (this.verifiedPreState("session", id)?.row as Session | undefined) : this.getSession(id);
       if (!existing) return false;
 
       this.db
@@ -680,7 +924,15 @@ export class RekindleStorage {
           data.orientationScore ?? existing.orientation_score,
           id
         );
-      this.auditSession(id, "update", checked);
+      if (eventAt === null) {
+        this.auditSession(id, "update", checked);
+        return true;
+      }
+      const auditId = this.auditSession(id, "update", checked, eventAt);
+      this.appendChain({
+        kind: "session", auditId, targetId: id, action: "update",
+        state_hash: this.currentStateHash("session", id), prior_state_hash: null, eventAt,
+      });
       return true;
     });
   }

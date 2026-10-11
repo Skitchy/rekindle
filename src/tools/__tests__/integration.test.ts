@@ -1,7 +1,18 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from "vitest";
 import { execFileSync } from "node:child_process";
 import { RekindleStorage } from "../../storage/sqlite.js";
-import { prepareWriteContext, TEST_SEED_ENV } from "../../provenance/keys.js";
+import { prepareWriteContext, keyFromSeed, keyIdOf, TEST_SEED_ENV } from "../../provenance/keys.js";
+import {
+  MERKLE_SPEC,
+  entryHash,
+  jcs,
+  merkleRoot,
+  sortMerkleLeaves,
+  stateHash,
+  type MerkleLeaf,
+} from "../../provenance/canonical.js";
+import { signEntryHash } from "../../provenance/chain.js";
+import { createHash, verify } from "node:crypto";
 import { CaptureManager } from "../../captures/index.js";
 import { createServer } from "../../server.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -522,27 +533,105 @@ describe("end_session semantic write gate", () => {
     expect(prepareWriteContext).not.toHaveBeenCalled();
   });
 
-  it("hint 0, flag flipped, then lock: one prepare, one retry, ChainedPathUnavailable, no partial rows", async () => {
-    process.env[TEST_SEED_ENV] = "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60";
+  it("hint 0, flag flipped, then lock: one prepare, one retry, then one signed entry per semantic write event", async () => {
+    const seed = "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60";
+    process.env[TEST_SEED_ENV] = seed;
+    const key = keyFromSeed(Buffer.from(seed, "hex"));
+    const keyId = keyIdOf(key);
+    // Phase 4 test-fixture convention only, not a settled Phase 5 payload/manifest-hash contract
+    // (Phase 5 may revise it). Models a baseline over the describe's pre-existing memory and
+    // session: each gets a nonce and a manifest leaf, and the signed payload binds root and hash.
+    const seedValidChain = (db: Database.Database) => {
+      const leaves: MerkleLeaf[] = [];
+      for (const [kind, table] of [["memory", "memories"], ["session", "sessions"]] as const) {
+        for (const row of db.prepare(`SELECT * FROM ${table}`).all() as Record<string, unknown>[]) {
+          const nonce = createHash("sha256").update(`fixture-nonce:${kind}:${row.id as string}`).digest();
+          db.prepare(`UPDATE ${table} SET nonce = ? WHERE id = ?`).run(nonce, row.id);
+          const live = db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(row.id) as Record<string, unknown>;
+          leaves.push({ kind, target_id: row.id as string, state_hash: stateHash(kind, nonce, live) });
+        }
+      }
+      const ordered = sortMerkleLeaves(leaves);
+      ordered.forEach((leaf, ordinal) =>
+        db.prepare(`INSERT INTO provenance_baseline_manifest (ordinal, kind, target_id, state_hash) VALUES (?, ?, ?, ?)`).run(
+          ordinal, leaf.kind, leaf.target_id, leaf.state_hash,
+        ),
+      );
+      const meta_payload = jcs({
+        algorithm: MERKLE_SPEC.algorithm, leaf_format: MERKLE_SPEC.leaf_format, ordering: MERKLE_SPEC.ordering,
+        leaf_count: ordered.length, root: merkleRoot(ordered),
+        manifest_hash: createHash("sha256").update(jcs(ordered.map((l) => [l.kind, l.target_id, l.state_hash]))).digest("hex"),
+        unverified_before: true,
+      });
+      const fields = {
+        seq: 1, store_id: STORE_ID, format_version: 1, audit_kind: "baseline", audit_id: null, target_id: null,
+        action: "baseline", state_hash: null, prior_state_hash: null, meta_payload, prev_hash: "0".repeat(64),
+        key_id: keyId, created_at: "2026-10-11 00:00:00", client: null, thread_id: null, request_id: null,
+        author_identity: null, authorization_reference: null, authorization_verified: 0,
+      };
+      const hash = entryHash(fields);
+      db.prepare(
+        `INSERT INTO provenance_chain (seq, store_id, format_version, audit_kind, action, meta_payload, prev_hash,
+           entry_hash, key_id, signature, created_at) VALUES (1, ?, 1, 'baseline', 'baseline', ?, ?, ?, ?, ?, ?)`,
+      ).run(STORE_ID, meta_payload, fields.prev_hash, hash, keyId, signEntryHash(hash, key), fields.created_at);
+      db.prepare(
+        `UPDATE provenance_meta SET store_id = ?, format_version = 1, canonical = 0, active_key_id = ?, baseline_seq = 1,
+           chain_enabled = 1 WHERE id = 1`,
+      ).run(STORE_ID, keyId);
+    };
     const target = RekindleStorage.prototype as unknown as { readChainEnabledHint(this: RekindleStorage): boolean };
     const realHint = target.readChainEnabledHint;
     const hint = vi.spyOn(target, "readChainEnabledHint").mockImplementation(function (this: RekindleStorage) {
       const stale = realHint.call(this);
-      withConnection((db) =>
-        db.prepare(
-          `UPDATE provenance_meta SET store_id = ?, format_version = 1, canonical = 0, active_key_id = ?,
-             baseline_seq = 1, chain_enabled = 1 WHERE id = 1`,
-        ).run(STORE_ID, "a".repeat(64)),
-      );
+      withConnection(seedValidChain);
       return stale;
     });
-    const before = snapshot();
+
     const result = await endSession();
-    expect(result.isError).toBe(true);
-    expect(result.text).toContain("chained_path_unavailable");
+
+    expect(result.isError).toBeFalsy();
+    const sessionId = JSON.parse(result.text).session_id as string;
     expect(hint).toHaveBeenCalledTimes(1);
     expect(prepareWriteContext).toHaveBeenCalledTimes(1);
-    expect(snapshot()).toEqual(before);
     expect(execFileSync).not.toHaveBeenCalled();
+    // One entry per semantic write event in the batch: session create, checkpoint store,
+    // decision store, then the session update, each linked to the entry before it.
+    const chain = snapshot().provenance_chain as Record<string, unknown>[];
+    expect(chain.map((r) => [r.seq, r.audit_kind, r.action])).toEqual([
+      [1, "baseline", "baseline"],
+      [2, "session", "create"],
+      [3, "memory", "store"],
+      [4, "memory", "store"],
+      [5, "session", "update"],
+    ]);
+    expect(chain[1].target_id).toBe(sessionId);
+    expect(chain[4].target_id).toBe(sessionId);
+    for (let i = 1; i < chain.length; i++) {
+      expect(chain[i].prev_hash).toBe(chain[i - 1].entry_hash);
+      expect(chain[i].key_id).toBe(keyId);
+      expect(
+        verify(null, Buffer.from(chain[i].entry_hash as string, "hex"), key, Buffer.from(chain[i].signature as string, "hex")),
+      ).toBe(true);
+    }
+    // The fixture is a complete baseline over the pre-existing memory and session, and they are untouched.
+    const manifest = withConnection(
+      (db) => db.prepare(`SELECT kind, target_id, state_hash FROM provenance_baseline_manifest ORDER BY ordinal`).all() as MerkleLeaf[],
+      true,
+    );
+    expect(manifest.map((l) => l.kind).sort()).toEqual(["memory", "session"]);
+    for (const leaf of manifest) {
+      const table = leaf.kind === "memory" ? "memories" : "sessions";
+      const live = withConnection(
+        (db) => db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(leaf.target_id) as Record<string, unknown>,
+        true,
+      );
+      expect(stateHash(leaf.kind, live.nonce as Buffer, live)).toBe(leaf.state_hash);
+    }
+    expect(JSON.parse(chain[0].meta_payload as string)).toMatchObject({
+      leaf_count: 2,
+      root: merkleRoot(manifest),
+      // The payload binds exactly the persisted manifest.
+      manifest_hash: createHash("sha256").update(jcs(manifest.map((l) => [l.kind, l.target_id, l.state_hash]))).digest("hex"),
+    });
   });
 });

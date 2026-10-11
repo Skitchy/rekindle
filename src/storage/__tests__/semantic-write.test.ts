@@ -575,45 +575,168 @@ describe("chain_enabled transitions", () => {
     });
   });
 
-  it("hint 0, then the flag flips, then the lock: one prepare outside the lock, one retry, then ChainedPathUnavailable", () => {
-    storage.store("pre-existing", "context");
+  it("hint 0, then the flag flips, then the lock: one prepare outside the lock, one retry, then a successful chained write", async () => {
+    // Phase 4 (amendment A4): the retry now lands on a valid chain seeded for the test key.
+    // Test-only baseline fixture: the pre-existing memory gets a nonce and a manifest leaf, and the
+    // signed baseline payload binds the Merkle root and manifest hash over those leaves. Phase 4
+    // test-fixture convention only, not a settled Phase 5 contract.
+    const { MERKLE_SPEC, entryHash, jcs, merkleRoot, sortMerkleLeaves, stateHash } = await import("../../provenance/canonical.js");
+    const { signEntryHash } = await import("../../provenance/chain.js");
+    const { createHash } = await import("node:crypto");
+    const key = actualKeys.keyFromSeed(Buffer.from(TEST_SEED, "hex"));
+    const keyId = actualKeys.keyIdOf(key);
+    const seedValidChain = (db: Database.Database) => {
+      const leaves = (db.prepare(`SELECT * FROM memories`).all() as Record<string, unknown>[]).map((row) => {
+        const nonce = createHash("sha256").update(`fixture-nonce:memory:${row.id as string}`).digest();
+        db.prepare(`UPDATE memories SET nonce = ? WHERE id = ?`).run(nonce, row.id);
+        const live = db.prepare(`SELECT * FROM memories WHERE id = ?`).get(row.id) as Record<string, unknown>;
+        return { kind: "memory" as const, target_id: row.id as string, state_hash: stateHash("memory", nonce, live) };
+      });
+      const ordered = sortMerkleLeaves(leaves);
+      ordered.forEach((leaf, ordinal) =>
+        db.prepare(`INSERT INTO provenance_baseline_manifest (ordinal, kind, target_id, state_hash) VALUES (?, ?, ?, ?)`).run(
+          ordinal, leaf.kind, leaf.target_id, leaf.state_hash,
+        ),
+      );
+      const meta_payload = jcs({
+        algorithm: MERKLE_SPEC.algorithm, leaf_format: MERKLE_SPEC.leaf_format, ordering: MERKLE_SPEC.ordering,
+        leaf_count: ordered.length, root: merkleRoot(ordered),
+        manifest_hash: createHash("sha256").update(jcs(ordered.map((l) => [l.kind, l.target_id, l.state_hash]))).digest("hex"),
+        unverified_before: true,
+      });
+      const fields = {
+        seq: 1, store_id: STORE_ID, format_version: 1, audit_kind: "baseline", audit_id: null, target_id: null,
+        action: "baseline", state_hash: null, prior_state_hash: null, meta_payload, prev_hash: "0".repeat(64),
+        key_id: keyId, created_at: "2026-10-11 00:00:00", client: null, thread_id: null, request_id: null,
+        author_identity: null, authorization_reference: null, authorization_verified: 0,
+      };
+      const hash = entryHash(fields);
+      db.prepare(
+        `INSERT INTO provenance_chain (seq, store_id, format_version, audit_kind, action, meta_payload, prev_hash,
+           entry_hash, key_id, signature, created_at) VALUES (1, ?, 1, 'baseline', 'baseline', ?, ?, ?, ?, ?, ?)`,
+      ).run(STORE_ID, meta_payload, fields.prev_hash, hash, keyId, signEntryHash(hash, key), fields.created_at);
+      db.prepare(
+        `UPDATE provenance_meta SET store_id = ?, format_version = 1, canonical = 0, active_key_id = ?, baseline_seq = 1,
+           chain_enabled = 1 WHERE id = 1`,
+      ).run(STORE_ID, keyId);
+    };
+    const preId = storage.store("pre-existing", "context");
     const before = snapshot();
     // The spy performs the real hint read, saves its 0, commits chain_enabled = 1 from another
     // connection, then returns the saved stale value: hint -> flip -> BEGIN IMMEDIATE/re-read.
     const hint = vi.spyOn(HintTarget, "readChainEnabledHint").mockImplementation(function (this: RekindleStorage) {
       const stale = realHint.call(this);
       order.push(`hint:${stale}`);
-      withConnection(enableChain);
+      withConnection(seedValidChain);
       order.push("flipped");
       return stale;
     });
-    const operation = vi.fn();
+    const operation = vi.fn(() => storage.store("written after the flip", "context"));
 
-    expectCode(() => storage.semanticWrite(operation), "chained_path_unavailable");
+    const id = storage.semanticWrite(operation);
 
     expect(order).toEqual(["hint:false", "flipped", "prepare:inTransaction=false"]);
     expect(hint).toHaveBeenCalledTimes(1);
     expect(mockedPrepare).toHaveBeenCalledTimes(1);
     expect(mockedPrepare).toHaveBeenCalledWith({ store_id: STORE_ID, canonical: false });
-    expect(operation).not.toHaveBeenCalled();
+    expect(operation).toHaveBeenCalledTimes(1);
     const after = snapshot();
-    expect(exceptMeta(after)).toEqual(exceptMeta(before));
-    expect((after.provenance_meta[0] as Record<string, unknown>).chain_enabled).toBe(1);
+    expect(after.memories).toHaveLength(before.memories.length + 1);
+    const chain = after.provenance_chain as Record<string, unknown>[];
+    expect(chain.map((r) => [r.seq, r.action, r.target_id])).toEqual([
+      [1, "baseline", null],
+      [2, "store", id],
+    ]);
+    expect(chain[1].prev_hash).toBe(chain[0].entry_hash);
+    expect(chain[1].key_id).toBe(keyId);
+    // The fixture is a valid baseline: the pre-existing row's leaf matches it, and the payload binds the root.
+    const manifest = after.provenance_baseline_manifest as { kind: "memory"; target_id: string; state_hash: string }[];
+    const preRow = (after.memories as Record<string, unknown>[]).find((m) => m.id === preId)!;
+    expect(manifest.map((l) => [l.kind, l.target_id, l.state_hash])).toEqual([
+      ["memory", preId, stateHash("memory", preRow.nonce as Buffer, preRow)],
+    ]);
+    expect(JSON.parse(chain[0].meta_payload as string)).toMatchObject({
+      leaf_count: 1,
+      root: merkleRoot(manifest),
+      // The payload binds exactly the persisted manifest (snapshot rows are in ordinal order).
+      manifest_hash: createHash("sha256").update(jcs(manifest.map((l) => [l.kind, l.target_id, l.state_hash]))).digest("hex"),
+    });
     expect(mockedExec).not.toHaveBeenCalled();
   });
 
-  it("an already-enabled store prepares once outside the lock, then fails closed before the operation", () => {
-    storage.store("pre-existing", "context");
-    withConnection(enableChain);
-    const before = snapshot();
-    const operation = vi.fn();
+  it("an already-enabled store prepares once per outer call outside the lock (two calls, two prepares), and both chained writes succeed", async () => {
+    // Phase 4 (amendment A4): a valid chain seeded for the test key, so both outer calls append.
+    // Test-only baseline fixture: the pre-existing memory gets a nonce and a manifest leaf, and the
+    // signed baseline payload binds the Merkle root and manifest hash over those leaves. Phase 4
+    // test-fixture convention only, not a settled Phase 5 contract.
+    const { MERKLE_SPEC, entryHash, jcs, merkleRoot, sortMerkleLeaves, stateHash } = await import("../../provenance/canonical.js");
+    const { signEntryHash } = await import("../../provenance/chain.js");
+    const { createHash } = await import("node:crypto");
+    const key = actualKeys.keyFromSeed(Buffer.from(TEST_SEED, "hex"));
+    const keyId = actualKeys.keyIdOf(key);
+    const preId = storage.store("pre-existing", "context");
+    withConnection((db) => {
+      const leaves = (db.prepare(`SELECT * FROM memories`).all() as Record<string, unknown>[]).map((row) => {
+        const nonce = createHash("sha256").update(`fixture-nonce:memory:${row.id as string}`).digest();
+        db.prepare(`UPDATE memories SET nonce = ? WHERE id = ?`).run(nonce, row.id);
+        const live = db.prepare(`SELECT * FROM memories WHERE id = ?`).get(row.id) as Record<string, unknown>;
+        return { kind: "memory" as const, target_id: row.id as string, state_hash: stateHash("memory", nonce, live) };
+      });
+      const ordered = sortMerkleLeaves(leaves);
+      ordered.forEach((leaf, ordinal) =>
+        db.prepare(`INSERT INTO provenance_baseline_manifest (ordinal, kind, target_id, state_hash) VALUES (?, ?, ?, ?)`).run(
+          ordinal, leaf.kind, leaf.target_id, leaf.state_hash,
+        ),
+      );
+      const meta_payload = jcs({
+        algorithm: MERKLE_SPEC.algorithm, leaf_format: MERKLE_SPEC.leaf_format, ordering: MERKLE_SPEC.ordering,
+        leaf_count: ordered.length, root: merkleRoot(ordered),
+        manifest_hash: createHash("sha256").update(jcs(ordered.map((l) => [l.kind, l.target_id, l.state_hash]))).digest("hex"),
+        unverified_before: true,
+      });
+      const fields = {
+        seq: 1, store_id: STORE_ID, format_version: 1, audit_kind: "baseline", audit_id: null, target_id: null,
+        action: "baseline", state_hash: null, prior_state_hash: null, meta_payload, prev_hash: "0".repeat(64),
+        key_id: keyId, created_at: "2026-10-11 00:00:00", client: null, thread_id: null, request_id: null,
+        author_identity: null, authorization_reference: null, authorization_verified: 0,
+      };
+      const hash = entryHash(fields);
+      db.prepare(
+        `INSERT INTO provenance_chain (seq, store_id, format_version, audit_kind, action, meta_payload, prev_hash,
+           entry_hash, key_id, signature, created_at) VALUES (1, ?, 1, 'baseline', 'baseline', ?, ?, ?, ?, ?, ?)`,
+      ).run(STORE_ID, meta_payload, fields.prev_hash, hash, keyId, signEntryHash(hash, key), fields.created_at);
+      db.prepare(
+        `UPDATE provenance_meta SET store_id = ?, format_version = 1, canonical = 0, active_key_id = ?, baseline_seq = 1,
+           chain_enabled = 1 WHERE id = 1`,
+      ).run(STORE_ID, keyId);
+    });
+    const operation = vi.fn(() => storage.store("first outer call", "context"));
 
-    expectCode(() => storage.semanticWrite(operation), "chained_path_unavailable");
-    expectCode(() => storage.store("blocked"), "chained_path_unavailable");
+    storage.semanticWrite(operation);
+    storage.store("second outer call", "context");
 
     expect(order).toEqual(["prepare:inTransaction=false", "prepare:inTransaction=false"]);
-    expect(operation).not.toHaveBeenCalled();
-    expect(snapshot()).toEqual(before);
+    expect(operation).toHaveBeenCalledTimes(1);
+    const chain = snapshot().provenance_chain as Record<string, unknown>[];
+    expect(chain.map((r) => [r.seq, r.action])).toEqual([
+      [1, "baseline"],
+      [2, "store"],
+      [3, "store"],
+    ]);
+    expect(chain[2].prev_hash).toBe(chain[1].entry_hash);
+    // The fixture is a valid baseline: the pre-existing row's leaf matches it, and the payload binds the root.
+    const after = snapshot();
+    const manifest = after.provenance_baseline_manifest as { kind: "memory"; target_id: string; state_hash: string }[];
+    const preRow = (after.memories as Record<string, unknown>[]).find((m) => m.id === preId)!;
+    expect(manifest.map((l) => [l.kind, l.target_id, l.state_hash])).toEqual([
+      ["memory", preId, stateHash("memory", preRow.nonce as Buffer, preRow)],
+    ]);
+    expect(JSON.parse(chain[0].meta_payload as string)).toMatchObject({
+      leaf_count: 1,
+      root: merkleRoot(manifest),
+      // The payload binds exactly the persisted manifest (snapshot rows are in ordinal order).
+      manifest_hash: createHash("sha256").update(jcs(manifest.map((l) => [l.kind, l.target_id, l.state_hash]))).digest("hex"),
+    });
     expect(mockedExec).not.toHaveBeenCalled();
   });
 
