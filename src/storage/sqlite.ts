@@ -473,23 +473,25 @@ export class RekindleStorage {
     const checked = this.checkedProvenance(provenance);
     const id = generateId();
     const now = new Date().toISOString().replace("T", " ").slice(0, 19);
-    this.db
-      .prepare(
-        `INSERT INTO sessions (id, started_at, ended_at, summary, transcript_path, project, checkpoint_memory_id, gap_count, orientation_score)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      )
-      .run(
-        id,
-        now,
-        now,
-        data.summary,
-        data.transcriptPath ?? null,
-        data.project ?? null,
-        data.checkpointMemoryId ?? null,
-        data.gapCount ?? 0,
-        data.orientationScore ?? null
-      );
-    this.auditSession(id, "create", checked);
+    this.transaction(() => {
+      this.db
+        .prepare(
+          `INSERT INTO sessions (id, started_at, ended_at, summary, transcript_path, project, checkpoint_memory_id, gap_count, orientation_score)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .run(
+          id,
+          now,
+          now,
+          data.summary,
+          data.transcriptPath ?? null,
+          data.project ?? null,
+          data.checkpointMemoryId ?? null,
+          data.gapCount ?? 0,
+          data.orientationScore ?? null
+        );
+      this.auditSession(id, "create", checked);
+    });
     return id;
   }
 
@@ -502,18 +504,20 @@ export class RekindleStorage {
     const existing = this.getSession(id);
     if (!existing) return false;
 
-    this.db
-      .prepare(
-        `UPDATE sessions SET summary = ?, checkpoint_memory_id = ?, gap_count = ?, orientation_score = ? WHERE id = ?`
-      )
-      .run(
-        data.summary ?? existing.summary,
-        data.checkpointMemoryId ?? existing.checkpoint_memory_id,
-        data.gapCount ?? existing.gap_count,
-        data.orientationScore ?? existing.orientation_score,
-        id
-      );
-    this.auditSession(id, "update", checked);
+    this.transaction(() => {
+      this.db
+        .prepare(
+          `UPDATE sessions SET summary = ?, checkpoint_memory_id = ?, gap_count = ?, orientation_score = ? WHERE id = ?`
+        )
+        .run(
+          data.summary ?? existing.summary,
+          data.checkpointMemoryId ?? existing.checkpoint_memory_id,
+          data.gapCount ?? existing.gap_count,
+          data.orientationScore ?? existing.orientation_score,
+          id
+        );
+      this.auditSession(id, "update", checked);
+    });
     return true;
   }
 

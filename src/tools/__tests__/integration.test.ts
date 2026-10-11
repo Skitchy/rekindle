@@ -8,6 +8,7 @@ import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { REKINDLE_VERSION } from "../../version.js";
+import Database from "better-sqlite3";
 
 let storage: RekindleStorage;
 let client: Client;
@@ -359,5 +360,80 @@ describe("MCP server integration", () => {
     )[0].text;
 
     expect(report).toContain("Left off at boot report integration");
+  });
+});
+
+// Phase 0 through the real end_session tool: if any session write or its
+// audit row fails, the whole end_session (session, checkpoint, decisions)
+// rolls back. Cases 6 and 8 fail the updateSession call end_session makes
+// after storing its records, so earlier writes in the batch must roll back too.
+describe("end_session write atomicity", () => {
+  const AUTHORITATIVE = ["sessions", "session_write_audit", "memories", "memory_write_audit"];
+  const dbPath = () => join(tmpDir, "db", "memories.db");
+
+  function snapshot(): Record<string, unknown[]> {
+    const reader = new Database(dbPath(), { readonly: true, fileMustExist: true });
+    try {
+      return Object.fromEntries(
+        AUTHORITATIVE.map((t) => [t, reader.prepare(`SELECT * FROM ${t} ORDER BY rowid`).all()])
+      );
+    } finally {
+      reader.close();
+    }
+  }
+
+  function injectFailure(trigger: string): void {
+    const injector = new Database(dbPath(), { fileMustExist: true });
+    try {
+      injector.exec(trigger);
+    } finally {
+      injector.close();
+    }
+  }
+
+  async function endSessionMustFail(): Promise<void> {
+    const result = await client.callTool({
+      name: "end_session",
+      arguments: { checkpoint: "must not persist", decisions: ["nor this decision"], project: "rekindle" },
+    });
+    expect(result.isError).toBe(true);
+    expect((result.content as { type: string; text: string }[])[0].text).toContain("injected");
+  }
+
+  beforeEach(() => {
+    storage.store("pre-existing memory", "context", 5, "rekindle");
+    storage.createSession({ summary: "pre-existing session", project: "rekindle" });
+  });
+
+  it("case 2: end_session rolls back when the createSession audit insert fails", async () => {
+    const before = snapshot();
+    injectFailure(`CREATE TRIGGER inj BEFORE INSERT ON session_write_audit
+      WHEN NEW.action = 'create' BEGIN SELECT RAISE(ABORT, 'injected'); END`);
+    await endSessionMustFail();
+    expect(snapshot()).toEqual(before);
+  });
+
+  it("case 4: end_session rolls back when the session insert fails", async () => {
+    const before = snapshot();
+    injectFailure(`CREATE TRIGGER inj BEFORE INSERT ON sessions
+      BEGIN SELECT RAISE(ABORT, 'injected'); END`);
+    await endSessionMustFail();
+    expect(snapshot()).toEqual(before);
+  });
+
+  it("case 6: end_session rolls back everything when its updateSession audit insert fails", async () => {
+    const before = snapshot();
+    injectFailure(`CREATE TRIGGER inj BEFORE INSERT ON session_write_audit
+      WHEN NEW.action = 'update' BEGIN SELECT RAISE(ABORT, 'injected'); END`);
+    await endSessionMustFail();
+    expect(snapshot()).toEqual(before);
+  });
+
+  it("case 8: end_session rolls back everything when its session update fails", async () => {
+    const before = snapshot();
+    injectFailure(`CREATE TRIGGER inj BEFORE UPDATE ON sessions
+      BEGIN SELECT RAISE(ABORT, 'injected'); END`);
+    await endSessionMustFail();
+    expect(snapshot()).toEqual(before);
   });
 });

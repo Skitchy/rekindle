@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { RekindleStorage } from "../sqlite.js";
+import Database from "better-sqlite3";
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -342,3 +343,71 @@ const VALID_CATEGORIES = [
   "relationship",
   "general",
 ];
+
+// Phase 0: a session write and its audit row commit together or not at all.
+// Failures are injected from a second connection with a RAISE(ABORT) trigger,
+// so production code needs no test seam. State is compared from a fresh
+// read-only connection, row for row.
+describe("session write atomicity", () => {
+  const AUTHORITATIVE = ["sessions", "session_write_audit", "memories", "memory_write_audit"];
+  const dbPath = () => join(tmpDir, "db", "memories.db");
+
+  function snapshot(): Record<string, unknown[]> {
+    const reader = new Database(dbPath(), { readonly: true, fileMustExist: true });
+    try {
+      return Object.fromEntries(
+        AUTHORITATIVE.map((t) => [t, reader.prepare(`SELECT * FROM ${t} ORDER BY rowid`).all()])
+      );
+    } finally {
+      reader.close();
+    }
+  }
+
+  function injectFailure(trigger: string): void {
+    const injector = new Database(dbPath(), { fileMustExist: true });
+    try {
+      injector.exec(trigger);
+    } finally {
+      injector.close();
+    }
+  }
+
+  let existingSession: string;
+
+  beforeEach(() => {
+    storage.store("pre-existing memory", "context", 5, "rekindle");
+    existingSession = storage.createSession({ summary: "pre-existing session", project: "rekindle" });
+  });
+
+  it("case 1: createSession rolls back when its audit insert fails", () => {
+    const before = snapshot();
+    injectFailure(`CREATE TRIGGER inj BEFORE INSERT ON session_write_audit
+      WHEN NEW.action = 'create' BEGIN SELECT RAISE(ABORT, 'injected'); END`);
+    expect(() => storage.createSession({ summary: "must not persist" })).toThrow("injected");
+    expect(snapshot()).toEqual(before);
+  });
+
+  it("case 3: createSession leaves nothing when its domain insert fails", () => {
+    const before = snapshot();
+    injectFailure(`CREATE TRIGGER inj BEFORE INSERT ON sessions
+      BEGIN SELECT RAISE(ABORT, 'injected'); END`);
+    expect(() => storage.createSession({ summary: "must not persist" })).toThrow("injected");
+    expect(snapshot()).toEqual(before);
+  });
+
+  it("case 5: updateSession rolls back when its audit insert fails", () => {
+    const before = snapshot();
+    injectFailure(`CREATE TRIGGER inj BEFORE INSERT ON session_write_audit
+      WHEN NEW.action = 'update' BEGIN SELECT RAISE(ABORT, 'injected'); END`);
+    expect(() => storage.updateSession(existingSession, { summary: "must not persist" })).toThrow("injected");
+    expect(snapshot()).toEqual(before);
+  });
+
+  it("case 7: updateSession leaves nothing when its domain update fails", () => {
+    const before = snapshot();
+    injectFailure(`CREATE TRIGGER inj BEFORE UPDATE ON sessions
+      BEGIN SELECT RAISE(ABORT, 'injected'); END`);
+    expect(() => storage.updateSession(existingSession, { summary: "must not persist" })).toThrow("injected");
+    expect(snapshot()).toEqual(before);
+  });
+});
