@@ -82,7 +82,7 @@ export function registerEndSession(
       provenance,
     }) => {
       storage.validateWriteProvenance(provenance);
-      return storage.transaction(() => {
+      return storage.semanticWrite(() => {
       const sessionId = storage.createSession({
         summary: "",
         transcriptPath: transcript_path,

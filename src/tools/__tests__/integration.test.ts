@@ -1,5 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from "vitest";
+import { execFileSync } from "node:child_process";
 import { RekindleStorage } from "../../storage/sqlite.js";
+import { prepareWriteContext, TEST_SEED_ENV } from "../../provenance/keys.js";
 import { CaptureManager } from "../../captures/index.js";
 import { createServer } from "../../server.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -9,6 +11,23 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { REKINDLE_VERSION } from "../../version.js";
 import Database from "better-sqlite3";
+
+// No test may reach the real /usr/bin/security (Phase 2 rule): the default mock throws.
+const { unmocked } = vi.hoisted(() => ({
+  unmocked: () => {
+    throw new Error("unmocked execFileSync call");
+  },
+}));
+vi.mock("node:child_process", () => ({ execFileSync: vi.fn(unmocked) }));
+vi.mock("../../provenance/keys.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../provenance/keys.js")>();
+  return { ...actual, prepareWriteContext: vi.fn(actual.prepareWriteContext) };
+});
+
+beforeAll(() => {
+  expect(vi.isMockFunction(execFileSync)).toBe(true);
+  expect(vi.isMockFunction(prepareWriteContext)).toBe(true);
+});
 
 let storage: RekindleStorage;
 let client: Client;
@@ -435,5 +454,95 @@ describe("end_session write atomicity", () => {
       BEGIN SELECT RAISE(ABORT, 'injected'); END`);
     await endSessionMustFail();
     expect(snapshot()).toEqual(before);
+  });
+});
+
+// Phase 3 through the real end_session tool: the whole batch goes through one semanticWrite.
+describe("end_session semantic write gate", () => {
+  const AUTHORITATIVE = [
+    "sessions",
+    "session_write_audit",
+    "memories",
+    "memory_write_audit",
+    "provenance_chain",
+    "provenance_baseline_manifest",
+  ];
+  const dbPath = () => join(tmpDir, "db", "memories.db");
+  const STORE_ID = "0123456789abcdef0123456789abcdef";
+  let savedSeed: string | undefined;
+
+  function withConnection<T>(fn: (db: Database.Database) => T, readonly = false): T {
+    const db = new Database(dbPath(), { readonly, fileMustExist: true });
+    try {
+      return fn(db);
+    } finally {
+      db.close();
+    }
+  }
+
+  const snapshot = (): Record<string, unknown[]> =>
+    withConnection(
+      (db) => Object.fromEntries(AUTHORITATIVE.map((t) => [t, db.prepare(`SELECT * FROM ${t} ORDER BY rowid`).all()])),
+      true,
+    );
+
+  async function endSession() {
+    const result = await client.callTool({
+      name: "end_session",
+      arguments: { checkpoint: "must not persist", decisions: ["nor this decision"], project: "rekindle" },
+    });
+    return { isError: result.isError, text: (result.content as { type: string; text: string }[])[0].text };
+  }
+
+  beforeEach(() => {
+    storage.store("pre-existing memory", "context", 5, "rekindle");
+    storage.createSession({ summary: "pre-existing session", project: "rekindle" });
+    vi.mocked(prepareWriteContext).mockClear();
+    vi.mocked(execFileSync).mockClear();
+    savedSeed = process.env[TEST_SEED_ENV];
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    if (savedSeed === undefined) delete process.env[TEST_SEED_ENV];
+    else process.env[TEST_SEED_ENV] = savedSeed;
+  });
+
+  it("is refused under a maintenance lock set from another connection, leaving no partial rows", async () => {
+    withConnection((db) =>
+      db.prepare(
+        `UPDATE provenance_meta SET maintenance_lock_token = 'token', maintenance_lock_started_at = 'now' WHERE id = 1`,
+      ).run(),
+    );
+    const before = snapshot();
+    const result = await endSession();
+    expect(result.isError).toBe(true);
+    expect(result.text).toContain("maintenance_locked");
+    expect(snapshot()).toEqual(before);
+    expect(prepareWriteContext).not.toHaveBeenCalled();
+  });
+
+  it("hint 0, flag flipped, then lock: one prepare, one retry, ChainedPathUnavailable, no partial rows", async () => {
+    process.env[TEST_SEED_ENV] = "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60";
+    const target = RekindleStorage.prototype as unknown as { readChainEnabledHint(this: RekindleStorage): boolean };
+    const realHint = target.readChainEnabledHint;
+    const hint = vi.spyOn(target, "readChainEnabledHint").mockImplementation(function (this: RekindleStorage) {
+      const stale = realHint.call(this);
+      withConnection((db) =>
+        db.prepare(
+          `UPDATE provenance_meta SET store_id = ?, format_version = 1, canonical = 0, active_key_id = ?,
+             baseline_seq = 1, chain_enabled = 1 WHERE id = 1`,
+        ).run(STORE_ID, "a".repeat(64)),
+      );
+      return stale;
+    });
+    const before = snapshot();
+    const result = await endSession();
+    expect(result.isError).toBe(true);
+    expect(result.text).toContain("chained_path_unavailable");
+    expect(hint).toHaveBeenCalledTimes(1);
+    expect(prepareWriteContext).toHaveBeenCalledTimes(1);
+    expect(snapshot()).toEqual(before);
+    expect(execFileSync).not.toHaveBeenCalled();
   });
 });

@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 import { randomBytes } from "node:crypto";
 import { join, dirname } from "node:path";
 import { mkdirSync, existsSync } from "node:fs";
+import { prepareWriteContext, type WriteContext } from "../provenance/keys.js";
 
 export interface Memory {
   id: string;
@@ -66,6 +67,97 @@ export type MemoryCategory = (typeof VALID_CATEGORIES)[number];
 
 function generateId(): string {
   return randomBytes(16).toString("hex");
+}
+
+export type ProvenanceWriteErrorCode =
+  | "maintenance_locked"
+  | "reprepare_required"
+  | "chained_path_unavailable"
+  | "store_unprepared"
+  | "unsafe_nesting";
+
+export class ProvenanceWriteError extends Error {
+  readonly code: ProvenanceWriteErrorCode;
+
+  constructor(code: ProvenanceWriteErrorCode, message: string) {
+    super(`${code}: ${message}`);
+    this.name = "ProvenanceWriteError";
+    this.code = code;
+  }
+}
+
+const LOWER_HEX = (column: string, length: number) =>
+  `(typeof(${column}) = 'text' AND length(${column}) = ${length} AND ${column} NOT GLOB '*[^0-9a-f]*')`;
+
+// Provenance schema (plan phase 3). Inert until a baseline enables the chain: nothing in this
+// phase writes chain or manifest rows or generates nonces. Design: docs/provenance-chain-design.md.
+const PROVENANCE_SCHEMA = `
+CREATE TABLE IF NOT EXISTS provenance_meta (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    store_id TEXT CHECK (store_id IS NULL OR ${LOWER_HEX("store_id", 32)}),
+    format_version INTEGER CHECK (format_version IS NULL OR (typeof(format_version) = 'integer' AND format_version = 1)),
+    canonical INTEGER CHECK (canonical IS NULL OR (typeof(canonical) = 'integer' AND canonical IN (0, 1))),
+    active_key_id TEXT CHECK (active_key_id IS NULL OR ${LOWER_HEX("active_key_id", 64)}),
+    chain_enabled INTEGER NOT NULL DEFAULT 0 CHECK (typeof(chain_enabled) = 'integer' AND chain_enabled IN (0, 1)),
+    baseline_seq INTEGER CHECK (baseline_seq IS NULL OR typeof(baseline_seq) = 'integer'),
+    maintenance_lock_token TEXT CHECK (maintenance_lock_token IS NULL OR typeof(maintenance_lock_token) = 'text'),
+    maintenance_lock_started_at TEXT CHECK (maintenance_lock_started_at IS NULL OR typeof(maintenance_lock_started_at) = 'text'),
+    CHECK ((maintenance_lock_token IS NULL) = (maintenance_lock_started_at IS NULL)),
+    CHECK (chain_enabled = 0 OR (store_id IS NOT NULL AND format_version IS NOT NULL AND canonical IS NOT NULL
+        AND active_key_id IS NOT NULL AND baseline_seq IS NOT NULL))
+);
+
+INSERT OR IGNORE INTO provenance_meta (id) VALUES (1);
+
+CREATE TABLE IF NOT EXISTS provenance_chain (
+    seq INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id TEXT NOT NULL,
+    format_version INTEGER NOT NULL CHECK (format_version = 1),
+    audit_kind TEXT NOT NULL CHECK (audit_kind IN ('memory', 'session', 'baseline', 'key_rotate')),
+    audit_id TEXT,
+    target_id TEXT,
+    action TEXT NOT NULL,
+    state_hash TEXT,
+    prior_state_hash TEXT,
+    meta_payload TEXT,
+    prev_hash TEXT NOT NULL,
+    entry_hash TEXT NOT NULL,
+    key_id TEXT NOT NULL,
+    signature TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    CHECK (
+        (audit_kind = 'memory' AND action IN ('store', 'update') AND audit_id IS NOT NULL AND target_id IS NOT NULL
+            AND state_hash IS NOT NULL AND prior_state_hash IS NULL AND meta_payload IS NULL)
+        OR (audit_kind = 'memory' AND action = 'delete' AND audit_id IS NOT NULL AND target_id IS NOT NULL
+            AND state_hash IS NULL AND prior_state_hash IS NOT NULL AND meta_payload IS NULL)
+        OR (audit_kind = 'session' AND action IN ('create', 'update') AND audit_id IS NOT NULL AND target_id IS NOT NULL
+            AND state_hash IS NOT NULL AND prior_state_hash IS NULL AND meta_payload IS NULL)
+        OR (audit_kind IN ('baseline', 'key_rotate') AND action = audit_kind AND audit_id IS NULL AND target_id IS NULL
+            AND state_hash IS NULL AND prior_state_hash IS NULL AND meta_payload IS NOT NULL)
+    )
+);
+
+CREATE TABLE IF NOT EXISTS provenance_baseline_manifest (
+    ordinal INTEGER PRIMARY KEY,
+    kind TEXT NOT NULL CHECK (kind IN ('memory', 'session')),
+    target_id TEXT NOT NULL,
+    state_hash TEXT NOT NULL CHECK (${LOWER_HEX("state_hash", 64)}),
+    UNIQUE (kind, target_id)
+);
+`;
+
+// Internal signal that the chain was enabled after the hint was read. Thrown only by the check
+// before the operation runs and caught only by semanticWrite, so nothing an operation throws
+// (including an exported reprepare_required error) can trigger the retry.
+class ReprepareSignal extends Error {}
+
+const NONCE_CHECK = "CHECK (nonce IS NULL OR (typeof(nonce) = 'blob' AND length(nonce) = 32))";
+
+interface ProvenanceMeta {
+  store_id: string | null;
+  canonical: number | null;
+  chain_enabled: number;
+  maintenance_lock_token: string | null;
 }
 
 const SCHEMA = `
@@ -176,6 +268,8 @@ export class RekindleStorage {
       "ALTER TABLE memories ADD COLUMN author_identity TEXT",
       "ALTER TABLE memories ADD COLUMN authorization_reference TEXT",
       "ALTER TABLE memories ADD COLUMN authorization_verified INTEGER NOT NULL DEFAULT 0",
+      `ALTER TABLE memories ADD COLUMN nonce BLOB ${NONCE_CHECK}`,
+      `ALTER TABLE sessions ADD COLUMN nonce BLOB ${NONCE_CHECK}`,
     ];
 
     for (const sql of migrations) {
@@ -188,6 +282,7 @@ export class RekindleStorage {
         }
       }
     }
+    this.db.exec(PROVENANCE_SCHEMA);
   }
 
   private checkedProvenance(provenance?: WriteProvenance): WriteProvenance | undefined {
@@ -209,6 +304,75 @@ export class RekindleStorage {
 
   transaction<T>(operation: () => T): T {
     return this.db.transaction(operation)();
+  }
+
+  private semanticDepth = 0;
+
+  // Every semantic write (store, update, delete, createSession, updateSession, end_session's batch)
+  // runs through here. Search's retrieval_count/last_accessed update is operational and does not.
+  // Plan phase 3: hint outside the lock, prepare outside the lock, then an immediate transaction
+  // that refuses under maintenance and re-reads chain_enabled before the operation runs.
+  semanticWrite<T>(operation: () => T): T {
+    // Nested inside a semantic write: a savepoint that reuses the outer checks and context.
+    if (this.semanticDepth > 0) return this.db.transaction(operation)();
+    // Inside any other transaction, better-sqlite3 would run .immediate() as a savepoint and
+    // never take the write lock, so refuse instead.
+    if (this.db.inTransaction) {
+      throw new ProvenanceWriteError("unsafe_nesting", "semantic writes cannot run inside a non-semantic transaction");
+    }
+    const context = this.readChainEnabledHint() ? this.prepareContext() : null;
+    try {
+      return this.lockedSemanticWrite(operation, context);
+    } catch (e: unknown) {
+      if (!(e instanceof ReprepareSignal)) throw e;
+    }
+    // The chain was enabled after the hint was read: prepare outside the lock and retry once.
+    try {
+      return this.lockedSemanticWrite(operation, this.prepareContext());
+    } catch (e: unknown) {
+      if (e instanceof ReprepareSignal) {
+        throw new ProvenanceWriteError("reprepare_required", "the chain was enabled after the write was prepared");
+      }
+      throw e;
+    }
+  }
+
+  private readChainEnabledHint(): boolean {
+    return this.readMeta().chain_enabled === 1;
+  }
+
+  private readMeta(): ProvenanceMeta {
+    return this.db
+      .prepare(`SELECT store_id, canonical, chain_enabled, maintenance_lock_token FROM provenance_meta WHERE id = 1`)
+      .get() as ProvenanceMeta;
+  }
+
+  private prepareContext(): WriteContext {
+    const meta = this.readMeta();
+    if (meta.store_id === null || meta.canonical === null) {
+      throw new ProvenanceWriteError("store_unprepared", "provenance is not prepared for this store");
+    }
+    return prepareWriteContext({ store_id: meta.store_id, canonical: meta.canonical === 1 });
+  }
+
+  private lockedSemanticWrite<T>(operation: () => T, context: WriteContext | null): T {
+    const run = this.db.transaction(() => {
+      const meta = this.readMeta();
+      if (meta.maintenance_lock_token !== null) {
+        throw new ProvenanceWriteError("maintenance_locked", "the store is under maintenance; semantic writes are refused");
+      }
+      if (meta.chain_enabled === 1) {
+        if (context === null) throw new ReprepareSignal();
+        throw new ProvenanceWriteError("chained_path_unavailable", "chained writes are not implemented yet");
+      }
+      this.semanticDepth++;
+      try {
+        return operation();
+      } finally {
+        this.semanticDepth--;
+      }
+    });
+    return run.immediate();
   }
 
   private auditWrite(memoryId: string, action: "store" | "update" | "delete", provenance?: WriteProvenance): void {
@@ -245,7 +409,7 @@ export class RekindleStorage {
         writer_client, writer_thread_id, request_id, author_identity, authorization_reference, authorization_verified)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
     `);
-    this.transaction(() => {
+    this.semanticWrite(() => {
       stmt.run(
         id, content, category, Math.max(1, Math.min(10, importance)), project ?? null,
         opts?.type ?? "memory", opts?.source ?? "manual", opts?.session_id ?? null,
@@ -360,33 +524,33 @@ export class RekindleStorage {
     provenance?: WriteProvenance
   ): boolean {
     const checked = this.checkedProvenance(provenance);
-    const existing = this.get(id);
-    if (!existing) return false;
+    // The current row is read under the write lock, so the update builds on committed state.
+    return this.semanticWrite(() => {
+      const existing = this.get(id);
+      if (!existing) return false;
 
-    const content = fields.content ?? existing.content;
-    const category = fields.category ?? existing.category;
-    const importance = fields.importance
-      ? Math.max(1, Math.min(10, fields.importance))
-      : existing.importance;
-    const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+      const content = fields.content ?? existing.content;
+      const category = fields.category ?? existing.category;
+      const importance = fields.importance
+        ? Math.max(1, Math.min(10, fields.importance))
+        : existing.importance;
+      const now = new Date().toISOString().replace("T", " ").slice(0, 19);
 
-    this.transaction(() => {
       this.db.prepare(
         `UPDATE memories SET content = ?, category = ?, importance = ?, updated_at = ? WHERE id = ?`
       ).run(content, category, importance, now, id);
       this.auditWrite(id, "update", checked);
+      return true;
     });
-    return true;
   }
 
   delete(id: string, provenance?: WriteProvenance): boolean {
     const checked = this.checkedProvenance(provenance);
-    const run = this.db.transaction(() => {
+    return this.semanticWrite(() => {
       const result = this.db.prepare(`DELETE FROM memories WHERE id = ?`).run(id);
       if (result.changes > 0) this.auditWrite(id, "delete", checked);
       return result.changes > 0;
     });
-    return run();
   }
 
   listWriteAudit(memoryId?: string): Array<Record<string, unknown>> {
@@ -473,7 +637,7 @@ export class RekindleStorage {
     const checked = this.checkedProvenance(provenance);
     const id = generateId();
     const now = new Date().toISOString().replace("T", " ").slice(0, 19);
-    this.transaction(() => {
+    this.semanticWrite(() => {
       this.db
         .prepare(
           `INSERT INTO sessions (id, started_at, ended_at, summary, transcript_path, project, checkpoint_memory_id, gap_count, orientation_score)
@@ -501,10 +665,10 @@ export class RekindleStorage {
     provenance?: WriteProvenance
   ): boolean {
     const checked = this.checkedProvenance(provenance);
-    const existing = this.getSession(id);
-    if (!existing) return false;
+    return this.semanticWrite(() => {
+      const existing = this.getSession(id);
+      if (!existing) return false;
 
-    this.transaction(() => {
       this.db
         .prepare(
           `UPDATE sessions SET summary = ?, checkpoint_memory_id = ?, gap_count = ?, orientation_score = ? WHERE id = ?`
@@ -517,8 +681,8 @@ export class RekindleStorage {
           id
         );
       this.auditSession(id, "update", checked);
+      return true;
     });
-    return true;
   }
 
   getSession(id: string): Session | null {
