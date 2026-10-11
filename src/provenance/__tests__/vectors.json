@@ -1,0 +1,472 @@
+{
+  "format_version": 1,
+  "generator": "rekindle-phase1-vector-oracle.py (Python stdlib, constrained common subset)",
+  "states": [
+    {
+      "name": "memory basic",
+      "kind": "memory",
+      "nonce": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "row": {
+        "id": "0b6f3a52-2b1e-4c55-9a43-6a3f1d2e7c10",
+        "content": "Clean water over credit.",
+        "category": "lesson",
+        "importance": 8,
+        "project": "rekindle",
+        "type": "memory",
+        "source": "manual",
+        "session_id": null,
+        "created_at": "2026-10-11 21:30:00",
+        "updated_at": "2026-10-11 21:30:00",
+        "retrieval_count": 3,
+        "last_accessed": "2026-10-11 21:31:00",
+        "writer_client": "claude-code",
+        "writer_thread_id": "thread-1",
+        "request_id": "req-1",
+        "author_identity": "cc",
+        "authorization_reference": "room:119",
+        "authorization_verified": 0
+      },
+      "expected_state_hash": "bd7f8c8ad4b212f8a72ce98db58ae481f9a76a9892263deb2a5f88f0ba855cc4"
+    },
+    {
+      "name": "memory other nonce",
+      "kind": "memory",
+      "nonce": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+      "row": {
+        "id": "0b6f3a52-2b1e-4c55-9a43-6a3f1d2e7c10",
+        "content": "Clean water over credit.",
+        "category": "lesson",
+        "importance": 8,
+        "project": "rekindle",
+        "type": "memory",
+        "source": "manual",
+        "session_id": null,
+        "created_at": "2026-10-11 21:30:00",
+        "updated_at": "2026-10-11 21:30:00",
+        "retrieval_count": 3,
+        "last_accessed": "2026-10-11 21:31:00",
+        "writer_client": "claude-code",
+        "writer_thread_id": "thread-1",
+        "request_id": "req-1",
+        "author_identity": "cc",
+        "authorization_reference": "room:119",
+        "authorization_verified": 0
+      },
+      "expected_state_hash": "298dc9d71d982043b77567e84f6c5b74fd1b3dad75e155eed09045dd52b45d8b"
+    },
+    {
+      "name": "memory NFC e-acute",
+      "kind": "memory",
+      "nonce": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "row": {
+        "id": "0b6f3a52-2b1e-4c55-9a43-6a3f1d2e7c10",
+        "content": "Café",
+        "category": "lesson",
+        "importance": 8,
+        "project": "rekindle",
+        "type": "memory",
+        "source": "manual",
+        "session_id": null,
+        "created_at": "2026-10-11 21:30:00",
+        "updated_at": "2026-10-11 21:30:00",
+        "retrieval_count": 3,
+        "last_accessed": "2026-10-11 21:31:00",
+        "writer_client": "claude-code",
+        "writer_thread_id": "thread-1",
+        "request_id": "req-1",
+        "author_identity": "cc",
+        "authorization_reference": "room:119",
+        "authorization_verified": 0
+      },
+      "expected_state_hash": "1505250c781752262248250192498827698b23c618c62009bc83d1c611b74333"
+    },
+    {
+      "name": "memory NFD e + combining acute",
+      "kind": "memory",
+      "nonce": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "row": {
+        "id": "0b6f3a52-2b1e-4c55-9a43-6a3f1d2e7c10",
+        "content": "Café",
+        "category": "lesson",
+        "importance": 8,
+        "project": "rekindle",
+        "type": "memory",
+        "source": "manual",
+        "session_id": null,
+        "created_at": "2026-10-11 21:30:00",
+        "updated_at": "2026-10-11 21:30:00",
+        "retrieval_count": 3,
+        "last_accessed": "2026-10-11 21:31:00",
+        "writer_client": "claude-code",
+        "writer_thread_id": "thread-1",
+        "request_id": "req-1",
+        "author_identity": "cc",
+        "authorization_reference": "room:119",
+        "authorization_verified": 0
+      },
+      "expected_state_hash": "2c31c2853cfe04afb11315c966ed3e3c1694c41646186f9f3b26ab7fc5a23a72"
+    },
+    {
+      "name": "memory non-BMP and nulls",
+      "kind": "memory",
+      "nonce": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "row": {
+        "id": "0b6f3a52-2b1e-4c55-9a43-6a3f1d2e7c10",
+        "content": "water 💧 €",
+        "category": "lesson",
+        "importance": 8,
+        "project": null,
+        "type": "memory",
+        "source": "manual",
+        "session_id": null,
+        "created_at": "2026-10-11 21:30:00",
+        "updated_at": "2026-10-11 21:30:00",
+        "retrieval_count": 3,
+        "last_accessed": "2026-10-11 21:31:00",
+        "writer_client": null,
+        "writer_thread_id": null,
+        "request_id": null,
+        "author_identity": null,
+        "authorization_reference": null,
+        "authorization_verified": 0
+      },
+      "expected_state_hash": "5da4065e4b9c8089f1da3117541c36108c8e11f987c110ac9fd35116b78e6076"
+    },
+    {
+      "name": "memory max safe integer",
+      "kind": "memory",
+      "nonce": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "row": {
+        "id": "0b6f3a52-2b1e-4c55-9a43-6a3f1d2e7c10",
+        "content": "Clean water over credit.",
+        "category": "lesson",
+        "importance": 8,
+        "project": "rekindle",
+        "type": "memory",
+        "source": "manual",
+        "session_id": null,
+        "created_at": "2026-10-11 21:30:00",
+        "updated_at": "2026-10-11 21:30:00",
+        "retrieval_count": 9007199254740991,
+        "last_accessed": "2026-10-11 21:31:00",
+        "writer_client": "claude-code",
+        "writer_thread_id": "thread-1",
+        "request_id": "req-1",
+        "author_identity": "cc",
+        "authorization_reference": "room:119",
+        "authorization_verified": 9007199254740991
+      },
+      "expected_state_hash": "85612cc9fff1b3321105fa0e7abb746113c8d6a89a82576d1eb12218eae3261e"
+    },
+    {
+      "name": "session basic",
+      "kind": "session",
+      "nonce": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "row": {
+        "id": "5e7d0c1a-9f0b-4f6e-8d21-2c4b6a8e0f13",
+        "summary": "Phase 1 scoped",
+        "project": "rekindle",
+        "started_at": "2026-10-11 21:14:00",
+        "ended_at": null,
+        "checkpoint_memory_id": null,
+        "gap_count": 0,
+        "orientation_score": null,
+        "transcript_path": null
+      },
+      "expected_state_hash": "19d4859154195952bd31393751b2b5c086009f55461dec934d74c0951d3afe27"
+    },
+    {
+      "name": "session ended",
+      "kind": "session",
+      "nonce": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+      "row": {
+        "id": "5e7d0c1a-9f0b-4f6e-8d21-2c4b6a8e0f13",
+        "summary": "Phase 1 scoped",
+        "project": "rekindle",
+        "started_at": "2026-10-11 21:14:00",
+        "ended_at": "2026-10-11 23:00:00",
+        "checkpoint_memory_id": "0b6f3a52-2b1e-4c55-9a43-6a3f1d2e7c10",
+        "gap_count": 2,
+        "orientation_score": -1,
+        "transcript_path": "2026-10-11_14-14_x.md"
+      },
+      "expected_state_hash": "df0193f29b497aeec709366d8ad002ab1297b470ac05bed1f723236fc3d31ed5"
+    }
+  ],
+  "entries": [
+    {
+      "name": "memory store",
+      "entry": {
+        "seq": 2,
+        "store_id": "store-test-1",
+        "format_version": 1,
+        "audit_kind": "memory",
+        "audit_id": "audit-1",
+        "target_id": "0b6f3a52-2b1e-4c55-9a43-6a3f1d2e7c10",
+        "action": "store",
+        "state_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "prior_state_hash": null,
+        "meta_payload": null,
+        "prev_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "key_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "created_at": "2026-10-11 21:30:00",
+        "client": "claude-code",
+        "thread_id": "thread-1",
+        "request_id": "req-1",
+        "author_identity": "cc",
+        "authorization_reference": "room:119",
+        "authorization_verified": 0
+      },
+      "expected_entry_hash": "74f2d3591226a05f42eed8d19869403248ee009f1cfa7059750d330e6a45a563"
+    },
+    {
+      "name": "memory delete",
+      "entry": {
+        "seq": 3,
+        "store_id": "store-test-1",
+        "format_version": 1,
+        "audit_kind": "memory",
+        "audit_id": "audit-2",
+        "target_id": "0b6f3a52-2b1e-4c55-9a43-6a3f1d2e7c10",
+        "action": "delete",
+        "state_hash": null,
+        "prior_state_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "meta_payload": null,
+        "prev_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "key_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "created_at": "2026-10-11 21:30:00",
+        "client": "claude-code",
+        "thread_id": "thread-1",
+        "request_id": "req-1",
+        "author_identity": "cc",
+        "authorization_reference": "room:119",
+        "authorization_verified": 0
+      },
+      "expected_entry_hash": "f550504687871e9920a757f35f45ea2fbdfe910ad91b2a57afa40e5fc680a34d"
+    },
+    {
+      "name": "baseline",
+      "entry": {
+        "seq": 1,
+        "store_id": "store-test-1",
+        "format_version": 1,
+        "audit_kind": "baseline",
+        "audit_id": null,
+        "target_id": null,
+        "action": "baseline",
+        "state_hash": null,
+        "prior_state_hash": null,
+        "meta_payload": "{\"leaf_count\":2,\"root\":\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"}",
+        "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "key_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "created_at": "2026-10-11 21:30:00",
+        "client": null,
+        "thread_id": null,
+        "request_id": null,
+        "author_identity": null,
+        "authorization_reference": null,
+        "authorization_verified": 0
+      },
+      "expected_entry_hash": "7fc98052c92be6059a0cfdd4fd81f56c24dc2b79fd22f1d71a94ff96802adaef"
+    },
+    {
+      "name": "key_rotate",
+      "entry": {
+        "seq": 4,
+        "store_id": "store-test-1",
+        "format_version": 1,
+        "audit_kind": "key_rotate",
+        "audit_id": null,
+        "target_id": null,
+        "action": "key_rotate",
+        "state_hash": null,
+        "prior_state_hash": null,
+        "meta_payload": "{\"new_key_id\":\"9999999999999999999999999999999999999999999999999999999999999999\",\"new_public_key\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"new_signature\":\"33333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333\",\"old_key_id\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"old_signature\":\"22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222\"}",
+        "prev_hash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "key_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "created_at": "2026-10-11 22:00:00",
+        "client": null,
+        "thread_id": null,
+        "request_id": null,
+        "author_identity": null,
+        "authorization_reference": null,
+        "authorization_verified": 0
+      },
+      "expected_entry_hash": "c7857f7f933fc3071a3bd640090e7b762a5d9edf26a4292781b2f6ab96001119"
+    }
+  ],
+  "rotation": {
+    "statement": {
+      "seq": 4,
+      "store_id": "store-test-1",
+      "format_version": 1,
+      "prev_hash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "event_at": "2026-10-11 22:00:00",
+      "old_key_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "new_key_id": "9999999999999999999999999999999999999999999999999999999999999999",
+      "new_public_key": "1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    "payload": {
+      "old_key_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "new_key_id": "9999999999999999999999999999999999999999999999999999999999999999",
+      "new_public_key": "1111111111111111111111111111111111111111111111111111111111111111",
+      "old_signature": "22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222",
+      "new_signature": "33333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "expected_statement_hash": "3af5350f54e002bb2ecd2df17d92e5fadf10c5e97a2fe24b306f63e246b5c74e",
+    "expected_payload_text": "{\"new_key_id\":\"9999999999999999999999999999999999999999999999999999999999999999\",\"new_public_key\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"new_signature\":\"33333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333\",\"old_key_id\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"old_signature\":\"22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222\"}"
+  },
+  "merkle": [
+    {
+      "name": "0 leaves",
+      "leaves": [],
+      "expected_root": "c0ee559a4fd16a2955d9580db67847621b5b56f5d9c706ed84f1cb52c63cfa83"
+    },
+    {
+      "name": "1 leaves",
+      "leaves": [
+        {
+          "kind": "session",
+          "target_id": "s-2",
+          "state_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "expected_root": "d23d27b0cfc3101bebe02bd200db8b40b104b8851fd43d0ba0d03f328626cc3c"
+    },
+    {
+      "name": "2 leaves",
+      "leaves": [
+        {
+          "kind": "session",
+          "target_id": "s-2",
+          "state_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        {
+          "kind": "memory",
+          "target_id": "m-3",
+          "state_hash": "2222222222222222222222222222222222222222222222222222222222222222"
+        }
+      ],
+      "expected_root": "abf2245167a1c58bc39bd4472c6b277f0e1df655823f612ce0348fc6834fabc5"
+    },
+    {
+      "name": "3 leaves",
+      "leaves": [
+        {
+          "kind": "session",
+          "target_id": "s-2",
+          "state_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        {
+          "kind": "memory",
+          "target_id": "m-3",
+          "state_hash": "2222222222222222222222222222222222222222222222222222222222222222"
+        },
+        {
+          "kind": "memory",
+          "target_id": "m-1",
+          "state_hash": "3333333333333333333333333333333333333333333333333333333333333333"
+        }
+      ],
+      "expected_root": "8b00eeaff24135892b8b6b055a7c333ec71c4ca94b232912f5b76aaecf54af12"
+    },
+    {
+      "name": "4 leaves",
+      "leaves": [
+        {
+          "kind": "session",
+          "target_id": "s-2",
+          "state_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        {
+          "kind": "memory",
+          "target_id": "m-3",
+          "state_hash": "2222222222222222222222222222222222222222222222222222222222222222"
+        },
+        {
+          "kind": "memory",
+          "target_id": "m-1",
+          "state_hash": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        {
+          "kind": "session",
+          "target_id": "s-1",
+          "state_hash": "4444444444444444444444444444444444444444444444444444444444444444"
+        }
+      ],
+      "expected_root": "7168aa2b15dd52cd82c5786408d4d995ae398c4f138f98b62abc732a3cbb4550"
+    },
+    {
+      "name": "5 leaves",
+      "leaves": [
+        {
+          "kind": "session",
+          "target_id": "s-2",
+          "state_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        {
+          "kind": "memory",
+          "target_id": "m-3",
+          "state_hash": "2222222222222222222222222222222222222222222222222222222222222222"
+        },
+        {
+          "kind": "memory",
+          "target_id": "m-1",
+          "state_hash": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        {
+          "kind": "session",
+          "target_id": "s-1",
+          "state_hash": "4444444444444444444444444444444444444444444444444444444444444444"
+        },
+        {
+          "kind": "memory",
+          "target_id": "m-2",
+          "state_hash": "5555555555555555555555555555555555555555555555555555555555555555"
+        }
+      ],
+      "expected_root": "7604af1ca1579c51c604f8f80c2b038473ba5c885e1e277d2bfd4c8a8e45e3cc"
+    },
+    {
+      "name": "7 leaves",
+      "leaves": [
+        {
+          "kind": "session",
+          "target_id": "s-2",
+          "state_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        {
+          "kind": "memory",
+          "target_id": "m-3",
+          "state_hash": "2222222222222222222222222222222222222222222222222222222222222222"
+        },
+        {
+          "kind": "memory",
+          "target_id": "m-1",
+          "state_hash": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        {
+          "kind": "session",
+          "target_id": "s-1",
+          "state_hash": "4444444444444444444444444444444444444444444444444444444444444444"
+        },
+        {
+          "kind": "memory",
+          "target_id": "m-2",
+          "state_hash": "5555555555555555555555555555555555555555555555555555555555555555"
+        },
+        {
+          "kind": "memory",
+          "target_id": "m-10",
+          "state_hash": "6666666666666666666666666666666666666666666666666666666666666666"
+        },
+        {
+          "kind": "memory",
+          "target_id": "M-0",
+          "state_hash": "7777777777777777777777777777777777777777777777777777777777777777"
+        }
+      ],
+      "expected_root": "604122113e2c8a337931b674505a2da4f17ee67824f0fe6b218ebb4ad0c3b1fd"
+    }
+  ]
+}
