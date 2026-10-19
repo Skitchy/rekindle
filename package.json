@@ -32,7 +32,7 @@
     "url": "git+https://github.com/Skitchy/rekindle.git"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "files": [
     "dist",
@@ -44,7 +44,7 @@
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
-    "better-sqlite3": "12.9.0",
+    "better-sqlite3": "^12.10.0",
     "canonicalize": "4.0.0",
     "zod": "^4.4.3"
   },
