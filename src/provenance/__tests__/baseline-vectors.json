@@ -1,0 +1,42 @@
+{
+  "note": "Phase 5 baseline-format fixed vectors (rekindle-baseline-v1). Expected values are pinned; any change is a new format string. Empty and one-leaf manifest_hash and the empty root were cross-checked with shasum outside the code.",
+  "inventory_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+  "cases": [
+    {
+      "name": "empty manifest",
+      "leaves": [],
+      "expected": {
+        "manifest_bytes": "[]",
+        "manifest_hash": "fb097726a6b0b43a05cf6aabfa5d18b34225d1ac43a8c1be4a0a0e4ff732644d",
+        "root": "c0ee559a4fd16a2955d9580db67847621b5b56f5d9c706ed84f1cb52c63cfa83",
+        "payload": "{\"algorithm\":\"rfc6962-mth-sha256-tagged-v1\",\"baseline_format\":\"rekindle-baseline-v1\",\"inventory_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"leaf_count\":0,\"leaf_format\":\"JCS([kind, target_id, state_hash])\",\"manifest_format\":\"SHA-256(MANIFEST_TAG || UTF-8 JCS([[kind, target_id, state_hash], ...])) in ordinal order, ordinal 0-based in MERKLE_SPEC order\",\"manifest_hash\":\"fb097726a6b0b43a05cf6aabfa5d18b34225d1ac43a8c1be4a0a0e4ff732644d\",\"ordering\":\"ascending by UTF-8 bytes of kind, then by UTF-8 bytes of target_id; duplicate (kind, target_id) rejected\",\"root\":\"c0ee559a4fd16a2955d9580db67847621b5b56f5d9c706ed84f1cb52c63cfa83\",\"unverified_before\":true}"
+      }
+    },
+    {
+      "name": "one memory leaf",
+      "leaves": [
+        { "kind": "memory", "target_id": "m1", "state_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }
+      ],
+      "expected": {
+        "manifest_bytes": "[[\"memory\",\"m1\",\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"]]",
+        "manifest_hash": "d6729344e10ffd130b5f22e38b0df940e370db77c91c4d4b51ee01fdeb34ba79",
+        "root": "89ddfbece7220fef66e26ea6336360df10ee37e031618eff84d26755f7d5d277",
+        "payload": "{\"algorithm\":\"rfc6962-mth-sha256-tagged-v1\",\"baseline_format\":\"rekindle-baseline-v1\",\"inventory_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"leaf_count\":1,\"leaf_format\":\"JCS([kind, target_id, state_hash])\",\"manifest_format\":\"SHA-256(MANIFEST_TAG || UTF-8 JCS([[kind, target_id, state_hash], ...])) in ordinal order, ordinal 0-based in MERKLE_SPEC order\",\"manifest_hash\":\"d6729344e10ffd130b5f22e38b0df940e370db77c91c4d4b51ee01fdeb34ba79\",\"ordering\":\"ascending by UTF-8 bytes of kind, then by UTF-8 bytes of target_id; duplicate (kind, target_id) rejected\",\"root\":\"89ddfbece7220fef66e26ea6336360df10ee37e031618eff84d26755f7d5d277\",\"unverified_before\":true}"
+      }
+    },
+    {
+      "name": "mixed memory and session leaves",
+      "leaves": [
+        { "kind": "memory", "target_id": "m1", "state_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+        { "kind": "memory", "target_id": "m2", "state_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
+        { "kind": "session", "target_id": "s1", "state_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" }
+      ],
+      "expected": {
+        "manifest_bytes": "[[\"memory\",\"m1\",\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"],[\"memory\",\"m2\",\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"],[\"session\",\"s1\",\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\"]]",
+        "manifest_hash": "a41c40e3dc3ca238aa01c6443cd2a24eb07609d6753200700a329e4fe58ee692",
+        "root": "b74b87be8d215a052ab6922ee08cea59f4608227b03649acac07a2998c39b3d6",
+        "payload": "{\"algorithm\":\"rfc6962-mth-sha256-tagged-v1\",\"baseline_format\":\"rekindle-baseline-v1\",\"inventory_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"leaf_count\":3,\"leaf_format\":\"JCS([kind, target_id, state_hash])\",\"manifest_format\":\"SHA-256(MANIFEST_TAG || UTF-8 JCS([[kind, target_id, state_hash], ...])) in ordinal order, ordinal 0-based in MERKLE_SPEC order\",\"manifest_hash\":\"a41c40e3dc3ca238aa01c6443cd2a24eb07609d6753200700a329e4fe58ee692\",\"ordering\":\"ascending by UTF-8 bytes of kind, then by UTF-8 bytes of target_id; duplicate (kind, target_id) rejected\",\"root\":\"b74b87be8d215a052ab6922ee08cea59f4608227b03649acac07a2998c39b3d6\",\"unverified_before\":true}"
+      }
+    }
+  ]
+}

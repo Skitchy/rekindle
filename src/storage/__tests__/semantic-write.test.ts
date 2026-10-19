@@ -578,14 +578,17 @@ describe("chain_enabled transitions", () => {
   it("hint 0, then the flag flips, then the lock: one prepare outside the lock, one retry, then a successful chained write", async () => {
     // Phase 4 (amendment A4): the retry now lands on a valid chain seeded for the test key.
     // Test-only baseline fixture: the pre-existing memory gets a nonce and a manifest leaf, and the
-    // signed baseline payload binds the Merkle root and manifest hash over those leaves. Phase 4
-    // test-fixture convention only, not a settled Phase 5 contract.
-    const { MERKLE_SPEC, entryHash, jcs, merkleRoot, sortMerkleLeaves, stateHash } = await import("../../provenance/canonical.js");
+    // signed baseline payload is the Phase 5 rekindle-baseline-v1 payload over those leaves and the
+    // pre-baseline inventory.
+    const { entryHash, merkleRoot, sortMerkleLeaves, stateHash } = await import("../../provenance/canonical.js");
     const { signEntryHash } = await import("../../provenance/chain.js");
+    const { buildBaselinePayload, manifestHash, parseBaselinePayload } = await import("../../provenance/baseline-format.js");
+    const { computeInventory } = await import("../../provenance/inventory.js");
     const { createHash } = await import("node:crypto");
     const key = actualKeys.keyFromSeed(Buffer.from(TEST_SEED, "hex"));
     const keyId = actualKeys.keyIdOf(key);
     const seedValidChain = (db: Database.Database) => {
+      const inventory_hash = computeInventory(db).hash;
       const leaves = (db.prepare(`SELECT * FROM memories`).all() as Record<string, unknown>[]).map((row) => {
         const nonce = createHash("sha256").update(`fixture-nonce:memory:${row.id as string}`).digest();
         db.prepare(`UPDATE memories SET nonce = ? WHERE id = ?`).run(nonce, row.id);
@@ -598,12 +601,7 @@ describe("chain_enabled transitions", () => {
           ordinal, leaf.kind, leaf.target_id, leaf.state_hash,
         ),
       );
-      const meta_payload = jcs({
-        algorithm: MERKLE_SPEC.algorithm, leaf_format: MERKLE_SPEC.leaf_format, ordering: MERKLE_SPEC.ordering,
-        leaf_count: ordered.length, root: merkleRoot(ordered),
-        manifest_hash: createHash("sha256").update(jcs(ordered.map((l) => [l.kind, l.target_id, l.state_hash]))).digest("hex"),
-        unverified_before: true,
-      });
+      const meta_payload = buildBaselinePayload(ordered, inventory_hash);
       const fields = {
         seq: 1, store_id: STORE_ID, format_version: 1, audit_kind: "baseline", audit_id: null, target_id: null,
         action: "baseline", state_hash: null, prior_state_hash: null, meta_payload, prev_hash: "0".repeat(64),
@@ -655,11 +653,12 @@ describe("chain_enabled transitions", () => {
     expect(manifest.map((l) => [l.kind, l.target_id, l.state_hash])).toEqual([
       ["memory", preId, stateHash("memory", preRow.nonce as Buffer, preRow)],
     ]);
-    expect(JSON.parse(chain[0].meta_payload as string)).toMatchObject({
+    // The payload is a valid rekindle-baseline-v1 payload binding exactly the persisted manifest
+    // (snapshot rows are in ordinal order).
+    expect(parseBaselinePayload(chain[0].meta_payload as string, 1)).toMatchObject({
       leaf_count: 1,
       root: merkleRoot(manifest),
-      // The payload binds exactly the persisted manifest (snapshot rows are in ordinal order).
-      manifest_hash: createHash("sha256").update(jcs(manifest.map((l) => [l.kind, l.target_id, l.state_hash]))).digest("hex"),
+      manifest_hash: manifestHash(manifest),
     });
     expect(mockedExec).not.toHaveBeenCalled();
   });
@@ -667,15 +666,18 @@ describe("chain_enabled transitions", () => {
   it("an already-enabled store prepares once per outer call outside the lock (two calls, two prepares), and both chained writes succeed", async () => {
     // Phase 4 (amendment A4): a valid chain seeded for the test key, so both outer calls append.
     // Test-only baseline fixture: the pre-existing memory gets a nonce and a manifest leaf, and the
-    // signed baseline payload binds the Merkle root and manifest hash over those leaves. Phase 4
-    // test-fixture convention only, not a settled Phase 5 contract.
-    const { MERKLE_SPEC, entryHash, jcs, merkleRoot, sortMerkleLeaves, stateHash } = await import("../../provenance/canonical.js");
+    // signed baseline payload is the Phase 5 rekindle-baseline-v1 payload over those leaves and the
+    // pre-baseline inventory.
+    const { entryHash, merkleRoot, sortMerkleLeaves, stateHash } = await import("../../provenance/canonical.js");
     const { signEntryHash } = await import("../../provenance/chain.js");
+    const { buildBaselinePayload, manifestHash, parseBaselinePayload } = await import("../../provenance/baseline-format.js");
+    const { computeInventory } = await import("../../provenance/inventory.js");
     const { createHash } = await import("node:crypto");
     const key = actualKeys.keyFromSeed(Buffer.from(TEST_SEED, "hex"));
     const keyId = actualKeys.keyIdOf(key);
     const preId = storage.store("pre-existing", "context");
     withConnection((db) => {
+      const inventory_hash = computeInventory(db).hash;
       const leaves = (db.prepare(`SELECT * FROM memories`).all() as Record<string, unknown>[]).map((row) => {
         const nonce = createHash("sha256").update(`fixture-nonce:memory:${row.id as string}`).digest();
         db.prepare(`UPDATE memories SET nonce = ? WHERE id = ?`).run(nonce, row.id);
@@ -688,12 +690,7 @@ describe("chain_enabled transitions", () => {
           ordinal, leaf.kind, leaf.target_id, leaf.state_hash,
         ),
       );
-      const meta_payload = jcs({
-        algorithm: MERKLE_SPEC.algorithm, leaf_format: MERKLE_SPEC.leaf_format, ordering: MERKLE_SPEC.ordering,
-        leaf_count: ordered.length, root: merkleRoot(ordered),
-        manifest_hash: createHash("sha256").update(jcs(ordered.map((l) => [l.kind, l.target_id, l.state_hash]))).digest("hex"),
-        unverified_before: true,
-      });
+      const meta_payload = buildBaselinePayload(ordered, inventory_hash);
       const fields = {
         seq: 1, store_id: STORE_ID, format_version: 1, audit_kind: "baseline", audit_id: null, target_id: null,
         action: "baseline", state_hash: null, prior_state_hash: null, meta_payload, prev_hash: "0".repeat(64),
@@ -731,11 +728,12 @@ describe("chain_enabled transitions", () => {
     expect(manifest.map((l) => [l.kind, l.target_id, l.state_hash])).toEqual([
       ["memory", preId, stateHash("memory", preRow.nonce as Buffer, preRow)],
     ]);
-    expect(JSON.parse(chain[0].meta_payload as string)).toMatchObject({
+    // The payload is a valid rekindle-baseline-v1 payload binding exactly the persisted manifest
+    // (snapshot rows are in ordinal order).
+    expect(parseBaselinePayload(chain[0].meta_payload as string, 1)).toMatchObject({
       leaf_count: 1,
       root: merkleRoot(manifest),
-      // The payload binds exactly the persisted manifest (snapshot rows are in ordinal order).
-      manifest_hash: createHash("sha256").update(jcs(manifest.map((l) => [l.kind, l.target_id, l.state_hash]))).digest("hex"),
+      manifest_hash: manifestHash(manifest),
     });
     expect(mockedExec).not.toHaveBeenCalled();
   });

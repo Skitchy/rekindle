@@ -8,15 +8,15 @@ import { tmpdir } from "node:os";
 import { RekindleStorage, ProvenanceWriteError } from "../sqlite.js";
 import { prepareWriteContext, keyFromSeed, keyIdOf, TEST_SEED_ENV } from "../../provenance/keys.js";
 import {
-  MERKLE_SPEC,
   entryHash,
-  jcs,
   merkleRoot,
   sortMerkleLeaves,
   stateHash,
   type MerkleLeaf,
 } from "../../provenance/canonical.js";
 import { signEntryHash } from "../../provenance/chain.js";
+import { buildBaselinePayload, manifestHash, parseBaselinePayload } from "../../provenance/baseline-format.js";
+import { computeInventory } from "../../provenance/inventory.js";
 
 // No test may reach the real /usr/bin/security (Phase 2 rule): the default mock throws.
 const { unmocked } = vi.hoisted(() => ({
@@ -90,13 +90,12 @@ function chainRows(): ChainRowRecord[] {
   );
 }
 
-// Test fixture only (Phase 5 will write real baselines; nothing in production writes these). Models
-// what a baseline leaves behind: every live memory and session row gets a deterministic nonce if it
-// has none, the manifest holds one leaf per row in MERKLE_SPEC order, and a signed baseline entry at
-// seq 1 binds the root, algorithm, leaf format, ordering, leaf count and manifest hash. This is a
-// Phase 4 test-fixture convention only, not a settled Phase 5 payload/manifest-hash contract; Phase 5
-// may align or revise it.
+// Test fixture only (Phase 5's baseline writes real baselines). Models what a baseline leaves behind:
+// every live memory and session row gets a deterministic nonce if it has none, the manifest holds one
+// leaf per row in MERKLE_SPEC order, and a signed baseline entry at seq 1 carries the Phase 5
+// rekindle-baseline-v1 payload over those leaves and the pre-baseline inventory.
 function seedChain(db: Database.Database, storeId = STORE_A, key: KeyObject = KEY_1, keyId = KEY_ID_1): void {
+  const inventory_hash = computeInventory(db).hash;
   const leaves: MerkleLeaf[] = [];
   for (const [kind, table] of [["memory", "memories"], ["session", "sessions"]] as const) {
     for (const row of db.prepare(`SELECT * FROM ${table}`).all() as Record<string, unknown>[]) {
@@ -118,17 +117,7 @@ function seedChain(db: Database.Database, storeId = STORE_A, key: KeyObject = KE
       leaf.state_hash,
     ),
   );
-  const meta_payload = jcs({
-    algorithm: MERKLE_SPEC.algorithm,
-    leaf_format: MERKLE_SPEC.leaf_format,
-    ordering: MERKLE_SPEC.ordering,
-    leaf_count: ordered.length,
-    root: merkleRoot(ordered),
-    manifest_hash: createHash("sha256")
-      .update(jcs(ordered.map((l) => [l.kind, l.target_id, l.state_hash])))
-      .digest("hex"),
-    unverified_before: true,
-  });
+  const meta_payload = buildBaselinePayload(ordered, inventory_hash);
   const fields = {
     seq: 1,
     store_id: storeId,
@@ -169,16 +158,15 @@ function expectBaselineConsistent(): void {
       const leaves = db
         .prepare(`SELECT kind, target_id, state_hash FROM provenance_baseline_manifest ORDER BY ordinal`)
         .all() as MerkleLeaf[];
-      const payload = JSON.parse(
+      const payload = parseBaselinePayload(
         (db.prepare(`SELECT meta_payload FROM provenance_chain WHERE seq = 1`).get() as { meta_payload: string }).meta_payload,
+        1,
       );
       expect(payload.leaf_count).toBe(leaves.length);
       expect(payload.root).toBe(merkleRoot(leaves));
       expect(sortMerkleLeaves(leaves)).toEqual(leaves);
       // The payload binds exactly the persisted manifest.
-      expect(payload.manifest_hash).toBe(
-        createHash("sha256").update(jcs(leaves.map((l) => [l.kind, l.target_id, l.state_hash]))).digest("hex"),
-      );
+      expect(payload.manifest_hash).toBe(manifestHash(leaves));
     },
     { readonly: true },
   );

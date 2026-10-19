@@ -538,10 +538,13 @@ describe("end_session semantic write gate", () => {
     process.env[TEST_SEED_ENV] = seed;
     const key = keyFromSeed(Buffer.from(seed, "hex"));
     const keyId = keyIdOf(key);
-    // Phase 4 test-fixture convention only, not a settled Phase 5 payload/manifest-hash contract
-    // (Phase 5 may revise it). Models a baseline over the describe's pre-existing memory and
-    // session: each gets a nonce and a manifest leaf, and the signed payload binds root and hash.
+    // Models a baseline over the describe's pre-existing memory and session: each gets a nonce and a
+    // manifest leaf, and the signed payload is the Phase 5 rekindle-baseline-v1 payload over those
+    // leaves and the pre-baseline inventory.
+    const { buildBaselinePayload, manifestHash, parseBaselinePayload } = await import("../../provenance/baseline-format.js");
+    const { computeInventory } = await import("../../provenance/inventory.js");
     const seedValidChain = (db: Database.Database) => {
+      const inventory_hash = computeInventory(db).hash;
       const leaves: MerkleLeaf[] = [];
       for (const [kind, table] of [["memory", "memories"], ["session", "sessions"]] as const) {
         for (const row of db.prepare(`SELECT * FROM ${table}`).all() as Record<string, unknown>[]) {
@@ -557,12 +560,7 @@ describe("end_session semantic write gate", () => {
           ordinal, leaf.kind, leaf.target_id, leaf.state_hash,
         ),
       );
-      const meta_payload = jcs({
-        algorithm: MERKLE_SPEC.algorithm, leaf_format: MERKLE_SPEC.leaf_format, ordering: MERKLE_SPEC.ordering,
-        leaf_count: ordered.length, root: merkleRoot(ordered),
-        manifest_hash: createHash("sha256").update(jcs(ordered.map((l) => [l.kind, l.target_id, l.state_hash]))).digest("hex"),
-        unverified_before: true,
-      });
+      const meta_payload = buildBaselinePayload(ordered, inventory_hash);
       const fields = {
         seq: 1, store_id: STORE_ID, format_version: 1, audit_kind: "baseline", audit_id: null, target_id: null,
         action: "baseline", state_hash: null, prior_state_hash: null, meta_payload, prev_hash: "0".repeat(64),
@@ -627,11 +625,11 @@ describe("end_session semantic write gate", () => {
       );
       expect(stateHash(leaf.kind, live.nonce as Buffer, live)).toBe(leaf.state_hash);
     }
-    expect(JSON.parse(chain[0].meta_payload as string)).toMatchObject({
+    // A valid rekindle-baseline-v1 payload binding exactly the persisted manifest.
+    expect(parseBaselinePayload(chain[0].meta_payload as string, 1)).toMatchObject({
       leaf_count: 2,
       root: merkleRoot(manifest),
-      // The payload binds exactly the persisted manifest.
-      manifest_hash: createHash("sha256").update(jcs(manifest.map((l) => [l.kind, l.target_id, l.state_hash]))).digest("hex"),
+      manifest_hash: manifestHash(manifest),
     });
   });
 });
