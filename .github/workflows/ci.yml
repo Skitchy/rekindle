@@ -38,3 +38,38 @@ jobs:
       - run: npm ci
       - run: npm run verify:package
       - run: npm audit --omit=dev
+
+  # Installs the packed tarball the way a stranger would: fresh dependency resolution, inside an
+  # image with no compiler, so a missing better-sqlite3 prebuild fails here instead of for users.
+  clean-install:
+    name: Clean install (${{ matrix.image }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ["node:20-slim", "node:22-slim"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Pack
+        run: npm pack --pack-destination "$RUNNER_TEMP" && ls -l "$RUNNER_TEMP"/rekindle-*.tgz
+      - name: Install the tarball and run init in ${{ matrix.image }}
+        run: |
+          docker run --rm -v "$RUNNER_TEMP":/pkg:ro "${{ matrix.image }}" sh -euc '
+            echo "image: ${{ matrix.image }}"; echo "node: $(node -v)"; echo "npm: $(npm -v)"
+            for tool in make g++ gcc cc; do
+              if command -v "$tool" >/dev/null 2>&1; then echo "build tool present: $tool"; exit 1; fi
+            done
+            work=$(mktemp -d) && cd "$work"
+            npm init -y >/dev/null
+            npm install /pkg/rekindle-*.tgz
+            npm ls better-sqlite3 | tee ls.txt
+            grep -q "better-sqlite3@12.9.0" ls.txt
+            HOME="$work/home" ./node_modules/.bin/rekindle init
+            test -f .rekindle/db/memories.db
+            echo "clean install OK"
+          '
