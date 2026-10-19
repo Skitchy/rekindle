@@ -4,8 +4,10 @@
 #
 # Recorded from main at 5ff9953 on 2026-10-19.
 # Regenerate from the repo root:  vhs docs/demo.tape
-# Writes only under /tmp/rekindle-demo: the packed tarball, a demo project,
-# and an isolated HOME. Nothing from the recording machine's config is read.
+# Setup writes only under /tmp/rekindle-demo (the packed tarball, a demo
+# project, an isolated HOME); VHS writes docs/demo.gif. HOME is isolated
+# before any npm command runs, so npm reads no config from the recording
+# machine; the shell itself still starts from that machine's bash.
 
 Output docs/demo.gif
 
@@ -21,10 +23,10 @@ Set WaitTimeout 240s
 # Hidden setup: pack this checkout, install it and the MCP SDK into the demo
 # project, copy the demo script in. The viewer sees none of this.
 Hide
-Type "REPO=$PWD && rm -rf /tmp/rekindle-demo && mkdir -p /tmp/rekindle-demo/home /tmp/rekindle-demo/project && npm pack --pack-destination /tmp/rekindle-demo >/dev/null 2>&1 && echo packed-ok"
+Type "REPO=$PWD && rm -rf /tmp/rekindle-demo && mkdir -p /tmp/rekindle-demo/home /tmp/rekindle-demo/project && export HOME=/tmp/rekindle-demo/home && npm pack --pack-destination /tmp/rekindle-demo >/dev/null 2>&1 && echo packed-ok"
 Enter
 Wait+Screen /packed-ok/
-Type "export HOME=/tmp/rekindle-demo/home && cd /tmp/rekindle-demo/project && npm init -y >/dev/null && npm install --no-audit --no-fund --loglevel=error ../rekindle-*.tgz @modelcontextprotocol/sdk >/dev/null && cp $REPO/docs/demo/session.mjs . && echo setup-ok"
+Type "cd /tmp/rekindle-demo/project && npm init -y >/dev/null && npm install --no-audit --no-fund --loglevel=error ../rekindle-*.tgz @modelcontextprotocol/sdk >/dev/null && cp $REPO/docs/demo/session.mjs . && echo setup-ok"
 Enter
 Wait+Screen /setup-ok/
 Type "clear"
