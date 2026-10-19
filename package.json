@@ -37,7 +37,6 @@
   "files": [
     "dist",
     "hooks",
-    "docs",
     "examples",
     "LICENSE",
     "README.md"
