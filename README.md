@@ -19,7 +19,7 @@ npx rekindle init
 
 ---
 
-![Rekindle init demo](docs/demo.gif)
+![Rekindle init demo](https://raw.githubusercontent.com/Skitchy/rekindle/main/docs/demo.gif)
 
 Rekindle is an MCP continuity engine that solves **session orientation**, not just storage. Orient at session start, capture at session end, survive mid-session compaction. All local, all SQLite, zero API keys.
 
@@ -133,7 +133,7 @@ Existing memory tools (Mem0, Letta, Zep) optimize for retrieval accuracy: can th
 
 Rekindle solves session orientation: loading identity, recent context, memory health, and missing-context warnings before the assistant starts work.
 
-See [docs/gap-analysis.md](docs/gap-analysis.md) for the full research dataset.
+See [docs/gap-analysis.md](https://github.com/Skitchy/rekindle/blob/main/docs/gap-analysis.md) for the full research dataset.
 
 ---
 
@@ -243,7 +243,7 @@ A static file is passive. Your AI reads it, but it can't search it, rank it, tra
 - **Desktop-safe storage** — storage root never derives from the spawn point (Claude Desktop spawns MCP servers at `/`); explicit resolution order, fail-loud
 - **Dual-channel guidance** — workflow guidance rides both tool descriptions and MCP instructions, drift structurally impossible
 - **Cursor adapter** — `session-start --client cursor` with whitelist stdin parsing; email and workspace paths never reach receipts
-- **Measured, not assumed** — every claim above is backed by a published measurement ([evidence](docs/evidence-v0.3.1-measurements), [spike results](docs/compatibility-spike-results.md))
+- **Measured, not assumed** — every claim above is backed by a published measurement ([evidence](https://github.com/Skitchy/rekindle/tree/main/docs/evidence-v0.3.1-measurements), [spike results](https://github.com/Skitchy/rekindle/blob/main/docs/compatibility-spike-results.md))
 
 **v0.3.0 — "Survive the Long Middle"** added the PreCompact capture system, open loops, and review tracking — [v0.3.0 release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.3.0)
 
@@ -346,7 +346,7 @@ Rules 3 and 5 exist because some hosts (e.g. Claude Desktop) spawn MCP servers a
 
 ## Compatibility
 
-"Full delivery" means the orientation packet arrives automatically at session boundaries and the model demonstrably sees it — measured with canary probes at both the receipt layer and the model layer, not assumed. Details and evidence: [compatibility spike results](docs/compatibility-spike-results.md).
+"Full delivery" means the orientation packet arrives automatically at session boundaries and the model demonstrably sees it — measured with canary probes at both the receipt layer and the model layer, not assumed. Details and evidence: [compatibility spike results](https://github.com/Skitchy/rekindle/blob/main/docs/compatibility-spike-results.md).
 
 | Client surface | MCP tools | Session-start delivery |
 |--------|-----------|--------|
