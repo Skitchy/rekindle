@@ -3,7 +3,7 @@
 # Rekindle
 
 [![npm](https://img.shields.io/npm/v/rekindle)](https://www.npmjs.com/package/rekindle)
-[![tests](https://img.shields.io/badge/tests-148%20passing-brightgreen)](#tests)
+[![CI](https://github.com/Skitchy/rekindle/actions/workflows/ci.yml/badge.svg)](https://github.com/Skitchy/rekindle/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Glama score](https://glama.ai/mcp/servers/Skitchy/rekindle/badges/score.svg)](https://glama.ai/mcp/servers/Skitchy/rekindle)
 
@@ -23,7 +23,7 @@ npx rekindle init
 
 Rekindle is an MCP continuity engine that solves **session orientation**, not just storage. Orient at session start, capture at session end, survive mid-session compaction. All local, all SQLite, zero API keys.
 
-**v0.3.3** — version-consistent MCP metadata and package documentation, on top of v0.3.2's one-command session-start delivery installer. [Release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.3.3)
+**v0.4.0** — policy-aware, project-safe session start on Node.js 22 or newer, in a much smaller npm package. [Release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.4.0)
 
 ## Quick Start
 
@@ -38,7 +38,12 @@ This creates `.rekindle/` in your project with a SQLite database, identity templ
 <details open>
 <summary><strong>Claude Code</strong></summary>
 
-Add to `~/.claude.json`:
+One command registers the server:
+```bash
+claude mcp add rekindle -- npx -y rekindle
+```
+
+Or add it to `~/.claude.json` by hand:
 ```json
 {
   "mcpServers": {
@@ -225,11 +230,21 @@ A static file is passive. Your AI reads it, but it can't search it, rank it, tra
 
 ## Release Highlights
 
+**v0.4.0**
+
+- **Node.js 22 or newer required** — Node 20 reached end of life in April 2026 and is no longer supported; CI runs on Node 22, 24 and 26
+- **Policy-aware session start** — `.rekindle/policy.json` controls transcript handling (`transcript_mode`: `captured`, `tail-read-only`, or `excluded`), the startup byte budget, mandatory versus optional packet sections, and whether background hooks may write (`background_writes_allowed`)
+- **Project-safe delivery** — `.rekindle/projects.json` maps workspaces to projects; an unmapped or ambiguous workspace is reported as `UNKNOWN PROJECT` and never receives another project's checkpoint; `REKINDLE_PROJECT` is an explicit override
+- **Transcript filename withheld in tail mode** — in `tail-read-only` mode the packet shows the transcript tail but not the file's name
+- **Atomic session writes** — a session row and its audit row commit together or not at all
+- **Clean production audit** — `npm audit --omit=dev` found zero vulnerabilities (production dependencies)
+- **Smaller package** — the npm tarball drops from about 1.9 MB to about 110 KB; evidence and design documents stay on GitHub
+
 **v0.3.3**
 
 - **Version-consistent protocol metadata** — the MCP initialize response derives its version from the shipped package metadata, preventing release-version drift
 - **Package-page accuracy** — the README shipped to npm identifies the current release before the tag and package are created
-- **169 automated tests**, plus a packed-artifact check that compares MCP metadata to the installed package version
+- **Expanded automated tests**, plus a packed-artifact check that compares MCP metadata to the installed package version
 
 **v0.3.2**
 
@@ -457,11 +472,11 @@ rekindle/
 npm test
 ```
 
-169 tests: storage CRUD + FTS5 ranking, orientation domain (gap detection, policy-aware scoring, project resolution, service, rendering), capture manager (parsing, limits, review tracking, formatting), delivery (atomic packet budget, receipts, guidance channels, Cursor privacy sentinels), hook setup for both hooks (schema, idempotency, corruption refusal), and MCP integration (all 10 tools plus package-derived server metadata).
+The suite runs in CI on Node 22, 24 and 26 and covers: storage CRUD + FTS5 ranking, orientation domain (gap detection, policy-aware scoring, project resolution, service, rendering), capture manager (parsing, limits, review tracking, formatting), delivery (atomic packet budget, receipts, guidance channels, Cursor privacy sentinels), hook setup for both hooks (schema, idempotency, corruption refusal), and MCP integration (all 10 tools plus package-derived server metadata).
 
 ## Roadmap
 
-**v0.4: "It thinks in networks"** — Spreading activation, semantic search via embeddings, gap analysis tooling, eval harness.
+**Next: "It thinks in networks"** — Spreading activation, semantic search via embeddings, gap analysis tooling, eval harness.
 
 ## License
 
