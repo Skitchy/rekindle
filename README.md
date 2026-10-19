@@ -27,7 +27,7 @@ Rekindle is an MCP continuity engine that solves **session orientation**, not ju
 
 ## Quick Start
 
-Requires Node.js 20 or newer.
+Requires Node.js 22 or newer.
 
 ```bash
 npx rekindle init

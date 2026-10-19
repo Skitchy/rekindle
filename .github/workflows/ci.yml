@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20, 22]
+        node: [22, 24, 26]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -38,3 +38,36 @@ jobs:
       - run: npm ci
       - run: npm run verify:package
       - run: npm audit --omit=dev
+
+  # Runs scripts/verify-package.mjs against the packed tarball inside an image with no compiler:
+  # fresh dependency resolution, the way a stranger installs, so a missing better-sqlite3 prebuild
+  # fails here instead of for users.
+  clean-install:
+    name: Clean install (${{ matrix.image }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ["node:22-slim", "node:24-slim", "node:26-slim"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Pack
+        run: |
+          mkdir "$RUNNER_TEMP/pkg"
+          npm pack --pack-destination "$RUNNER_TEMP/pkg"
+          test "$(ls "$RUNNER_TEMP/pkg" | wc -l)" -eq 1
+      - name: Verify the packed tarball in ${{ matrix.image }}
+        run: |
+          docker run --rm -v "$RUNNER_TEMP/pkg":/pkg:ro -v "$PWD/scripts":/scripts:ro "${{ matrix.image }}" sh -euc '
+            echo "image: ${{ matrix.image }}"; echo "node: $(node -v)"; echo "npm: $(npm -v)"
+            for tool in make g++ gcc cc; do
+              if command -v "$tool" >/dev/null 2>&1; then echo "build tool present: $tool"; exit 1; fi
+            done
+            set -- /pkg/*.tgz
+            node /scripts/verify-package.mjs "$1"
+          '
