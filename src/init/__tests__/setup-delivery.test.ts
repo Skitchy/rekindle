@@ -94,4 +94,26 @@ describe("setupDelivery", () => {
 
     expect(() => setupDelivery(tmpDir)).toThrow(/invalid JSON/);
   });
+
+  it("user scope writes .claude/settings.json (the file Claude Code applies in every project), not settings.local.json", () => {
+    setupDelivery(tmpDir, "user");
+
+    const userPath = join(tmpDir, ".claude", "settings.json");
+    expect(existsSync(userPath)).toBe(true);
+    expect(existsSync(join(tmpDir, ".claude", "settings.local.json"))).toBe(false);
+
+    const config = JSON.parse(readFileSync(userPath, "utf-8"));
+    expect(config.hooks.SessionStart).toHaveLength(1);
+    expect(config.hooks.SessionStart[0].hooks[0].command).toBe("npx rekindle session-start");
+  });
+
+  it("user scope coexists with a user-scope PreCompact hook in the same settings.json", () => {
+    setupHooks(tmpDir, "user");
+    setupDelivery(tmpDir, "user");
+
+    const config = JSON.parse(readFileSync(join(tmpDir, ".claude", "settings.json"), "utf-8"));
+    expect(config.hooks.PreCompact).toHaveLength(2);
+    expect(config.hooks.SessionStart).toHaveLength(1);
+    expect(existsSync(join(tmpDir, ".claude", "settings.local.json"))).toBe(false);
+  });
 });

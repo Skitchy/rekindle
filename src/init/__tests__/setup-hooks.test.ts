@@ -105,4 +105,29 @@ describe("setupHooks", () => {
     expect(() => setupHooks(tmpDir)).toThrow(/settings root must be a JSON object/);
     expect(readFileSync(settingsPath, "utf-8")).toBe("[]");
   });
+
+  it("user scope writes .claude/settings.json (the file Claude Code applies in every project), not settings.local.json", () => {
+    setupHooks(tmpDir, "user");
+
+    const userPath = join(tmpDir, ".claude", "settings.json");
+    expect(existsSync(userPath)).toBe(true);
+    expect(existsSync(join(tmpDir, ".claude", "settings.local.json"))).toBe(false);
+
+    const config = JSON.parse(readFileSync(userPath, "utf-8"));
+    expect(config.hooks.PreCompact).toHaveLength(2);
+    expect(config.hooks.PreCompact[0].hooks[0].command).toBe("npx rekindle precompact-capture");
+  });
+
+  it("user scope merges into an existing settings.json without touching other keys", () => {
+    const claudeDir = join(tmpDir, ".claude");
+    mkdirSync(claudeDir, { recursive: true });
+    writeFileSync(join(claudeDir, "settings.json"), JSON.stringify({ model: "opus", hooks: { Stop: [] } }));
+
+    setupHooks(tmpDir, "user");
+
+    const config = JSON.parse(readFileSync(join(claudeDir, "settings.json"), "utf-8"));
+    expect(config.model).toBe("opus");
+    expect(config.hooks.Stop).toEqual([]);
+    expect(config.hooks.PreCompact).toHaveLength(2);
+  });
 });

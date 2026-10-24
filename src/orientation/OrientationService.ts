@@ -1,5 +1,6 @@
 import { closeSync, readFileSync, readdirSync, existsSync, openSync, readSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative, sep } from "node:path";
+import { homedir } from "node:os";
 import type { RekindleStorage } from "../storage/sqlite.js";
 import type { OrientationConfig, OrientationResult } from "./types.js";
 import { detectGaps } from "./GapDetector.js";
@@ -39,6 +40,18 @@ function findLatestTranscript(
   return { path: filePath, name: files[0], content };
 }
 
+/**
+ * The registry the hook actually read, shown without leaking an absolute path:
+ * `~/.rekindle/projects.json` for a home-rooted store, `.rekindle/projects.json`
+ * when the store sits in the workspace, and the generic relative form otherwise.
+ */
+export function displayRegistryPath(registryPath: string, cwd: string | null, home: string = homedir()): string {
+  const under = (dir: string) => dir.length > 0 && registryPath.startsWith(dir.endsWith(sep) ? dir : dir + sep);
+  if (under(home)) return "~/" + relative(home, registryPath).split(sep).join("/");
+  if (cwd && under(cwd)) return relative(cwd, registryPath).split(sep).join("/");
+  return ".rekindle/projects.json";
+}
+
 export class OrientationService {
   constructor(private storage: RekindleStorage) {}
 
@@ -71,10 +84,16 @@ export class OrientationService {
 
     const gaps = detectGaps(stats, identityLoaded, hasTranscript, hasCheckpoint, transcriptMode);
     if (config.projectResolution && config.projectResolution.status !== "resolved") {
+      // Both remedies named, registry path kept relative: the packet must not leak
+      // absolute paths, and the user needs to know which file to edit.
+      const ambiguous = config.projectResolution.status === "ambiguous";
+      const registry = displayRegistryPath(config.projectResolution.registry_path, config.projectResolution.cwd);
       gaps.push({
-        code: config.projectResolution.status === "ambiguous" ? "project_ambiguous" : "project_unknown",
+        code: ambiguous ? "project_ambiguous" : "project_unknown",
         severity: "warning",
-        message: "Active workspace did not resolve to one canonical project; no checkpoint or context fallback was loaded.",
+        message: ambiguous
+          ? `Active workspace matched more than one project; no checkpoint was loaded. Remove the overlapping entries in ${registry}, or set REKINDLE_PROJECT to the project name.`
+          : `Active workspace did not resolve to a project; no checkpoint was loaded. Add this workspace to ${registry}, or set REKINDLE_PROJECT to the project name.`,
       });
     }
     const { score, earnedPoints, possiblePoints, breakdown } = calculateScore(
