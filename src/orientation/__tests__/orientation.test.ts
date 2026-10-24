@@ -7,6 +7,8 @@ import { detectGaps } from "../GapDetector.js";
 import { calculateScore } from "../Scorer.js";
 import { OrientationService } from "../OrientationService.js";
 import { OrientationRenderer } from "../OrientationRenderer.js";
+import { displayRegistryPath } from "../OrientationService.js";
+import { homedir } from "node:os";
 import type { MemoryStats } from "../../storage/sqlite.js";
 
 function emptyStats(): MemoryStats {
@@ -264,5 +266,95 @@ describe("OrientationRenderer", () => {
     expect(parsed.score).toBeDefined();
     expect(parsed.gaps).toBeInstanceOf(Array);
     expect(parsed.scoreBreakdown).toBeInstanceOf(Array);
+  });
+});
+
+describe("OrientationService project gap messages", () => {
+  function service() {
+    return new OrientationService(
+      new RekindleStorage(join(mkdtempSync(join(tmpdir(), "rk-gap-")), "db", "memories.db"))
+    );
+  }
+  const base = { identityPath: "/nonexistent", transcriptDir: "/nonexistent", allowCheckpointLookup: false };
+
+  it("unknown workspace: says no checkpoint was loaded and names both remedies with a relative registry path", () => {
+    const result = service().generate({
+      ...base,
+      projectResolution: {
+        status: "unknown", project: null, rule: "unknown", cwd: "/abs/secret/path",
+        registry_path: "/abs/secret/.rekindle/projects.json", override_registered: null,
+      },
+    });
+    const gap = result.gaps.find((g) => g.code === "project_unknown");
+    expect(gap).toBeDefined();
+    expect(gap!.severity).toBe("warning");
+    expect(gap!.message).toContain("no checkpoint was loaded");
+    expect(gap!.message).toContain(".rekindle/projects.json");
+    expect(gap!.message).toContain("REKINDLE_PROJECT");
+    expect(gap!.message).not.toContain("/abs/secret");
+  });
+
+  it("ambiguous workspace: distinct code, same two remedies, no absolute path", () => {
+    const result = service().generate({
+      ...base,
+      projectResolution: {
+        status: "ambiguous", project: null, rule: "ambiguous", cwd: "/abs/secret/path",
+        registry_path: "/abs/secret/.rekindle/projects.json", override_registered: null,
+      },
+    });
+    const gap = result.gaps.find((g) => g.code === "project_ambiguous");
+    expect(gap).toBeDefined();
+    expect(gap!.message).toContain("more than one project");
+    expect(gap!.message).toContain("no checkpoint was loaded");
+    expect(gap!.message).toContain(".rekindle/projects.json");
+    expect(gap!.message).toContain("REKINDLE_PROJECT");
+    expect(gap!.message).not.toContain("/abs/secret");
+    expect(result.gaps.some((g) => g.code === "project_unknown")).toBe(false);
+  });
+
+  it("resolved workspace: no project gap", () => {
+    const result = service().generate({
+      ...base,
+      projectResolution: {
+        status: "resolved", project: "alpha", rule: "exact-root", cwd: "/w/alpha",
+        registry_path: "/w/.rekindle/projects.json", override_registered: null,
+      },
+    });
+    expect(result.gaps.some((g) => g.code.startsWith("project_"))).toBe(false);
+  });
+});
+
+describe("displayRegistryPath", () => {
+  it("home-rooted store (the --global case) shows ~/.rekindle/projects.json", () => {
+    expect(displayRegistryPath("/home/u/.rekindle/projects.json", "/home/u/work/repo", "/home/u")).toBe("~/.rekindle/projects.json");
+  });
+
+  it("workspace-rooted store shows the path relative to the workspace", () => {
+    expect(displayRegistryPath("/w/repo/.rekindle/projects.json", "/w/repo", "/home/u")).toBe(".rekindle/projects.json");
+  });
+
+  it("any other root falls back to the generic relative form, never an absolute path", () => {
+    expect(displayRegistryPath("/srv/store/.rekindle/projects.json", "/w/repo", "/home/u")).toBe(".rekindle/projects.json");
+    expect(displayRegistryPath("/srv/store/.rekindle/projects.json", null, "/home/u")).toBe(".rekindle/projects.json");
+  });
+
+  it("does not treat a sibling directory with a shared prefix as inside home", () => {
+    expect(displayRegistryPath("/home/user2/.rekindle/projects.json", null, "/home/u")).toBe(".rekindle/projects.json");
+  });
+
+  it("gap message under a home-rooted store names ~/.rekindle/projects.json", () => {
+    const service = new OrientationService(
+      new RekindleStorage(join(mkdtempSync(join(tmpdir(), "rk-gap-home-")), "db", "memories.db"))
+    );
+    const result = service.generate({
+      identityPath: "/nonexistent", transcriptDir: "/nonexistent", allowCheckpointLookup: false,
+      projectResolution: {
+        status: "unknown", project: null, rule: "unknown", cwd: "/somewhere/else",
+        registry_path: join(homedir(), ".rekindle", "projects.json"), override_registered: null,
+      },
+    });
+    const gap = result.gaps.find((g) => g.code === "project_unknown");
+    expect(gap!.message).toContain("~/.rekindle/projects.json");
+    expect(gap!.message).not.toContain(homedir());
   });
 });

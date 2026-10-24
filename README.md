@@ -23,7 +23,7 @@ npx rekindle init
 
 Rekindle is an MCP continuity engine that solves **session orientation**, not just storage. Orient at session start, capture at session end, survive mid-session compaction. All local, all SQLite, zero API keys.
 
-**v0.4.0** — policy-aware, project-safe session start on Node.js 22 or newer, in a much smaller npm package. [Release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.4.0)
+**v0.4.1** — `--global` hook setup now lands in `~/.claude/settings.json`, the file Claude Code applies in every project (fixes [#25](https://github.com/Skitchy/rekindle/issues/25)); init output matches this README. [Release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.4.1)
 
 ## Quick Start
 
@@ -66,6 +66,8 @@ npx rekindle setup-delivery
 ```
 
 Both hooks are opt-in; plain `init` never installs either. `npx rekindle init --with-hooks --with-delivery` does everything in one line.
+
+Without `--global`, both commands write the project-local `.claude/settings.local.json`, so the hooks run only for sessions started in that directory. With `--global`, they write the user-scope `~/.claude/settings.json`, which Claude Code applies in every project on the machine; register the server at the same scope so it is present wherever the hooks fire: `claude mcp add --scope user rekindle -- npx -y rekindle` (plain `claude mcp add` is local to the current project).
 
 Session-start delivery resolves the hook's real working directory through
 `.rekindle/projects.json`. Exact roots match by default; nested directories
@@ -230,6 +232,12 @@ A static file is passive. Your AI reads it, but it can't search it, rank it, tra
 
 ## Release Highlights
 
+**v0.4.1**
+
+- **`--global` hooks fire everywhere** — `setup-hooks --global`, `setup-delivery --global` and `init --global --with-*` now write `~/.claude/settings.json` (user scope) instead of `~/.claude/settings.local.json`, which Claude Code reads only for sessions started in the home directory ([#25](https://github.com/Skitchy/rekindle/issues/25)). Project-local setup is unchanged. Each command prints the file it wrote
+- **Unresolved-workspace warning names the fix** — when the session-start packet cannot map the workspace to a project it now says that no checkpoint was loaded and points at the two remedies: add the workspace to the registry it read (`.rekindle/projects.json` for a project store, `~/.rekindle/projects.json` for a `--global` store), or set `REKINDLE_PROJECT`. The warning does not expose the absolute registry path
+- **Init output matches this README** — `init` leads with `claude mcp add rekindle -- npx -y rekindle` (`claude mcp add --scope user ...` under `--global`, so the server is registered wherever the global hooks fire), lists both opt-in hooks (with `--global` when used), and prints `~/.rekindle/...` paths under `--global`
+
 **v0.4.0**
 
 - **Node.js 22 or newer required** — Node 20 reached end of life in April 2026 and is no longer supported; CI runs on Node 22, 24 and 26
@@ -269,7 +277,7 @@ A static file is passive. Your AI reads it, but it can't search it, rank it, tra
 | Command | Description |
 |---------|-------------|
 | `npx rekindle init` | Set up `.rekindle/` in current directory |
-| `npx rekindle init --global` | Set up in home directory |
+| `npx rekindle init --global` | Set up in home directory; hooks go to `~/.claude/settings.json` |
 | `npx rekindle init --with-hooks` | Init + configure PreCompact capture hook |
 | `npx rekindle init --with-delivery` | Init + configure SessionStart delivery hook |
 | `npx rekindle setup-hooks` | Configure PreCompact capture hook (standalone) |
@@ -295,7 +303,7 @@ node dist/init/cli.js init
 <details>
 <summary><strong>PreCompact Hook Configuration</strong></summary>
 
-The `setup-hooks` command writes this to `.claude/settings.local.json`:
+The `setup-hooks` command writes this to `.claude/settings.local.json` (or `~/.claude/settings.json` with `--global`):
 
 ```json
 {
@@ -379,7 +387,7 @@ Rules 3 and 5 exist because some hosts (e.g. Claude Desktop) spawn MCP servers a
 npx rekindle setup-delivery
 ```
 
-writes this to `.claude/settings.local.json`:
+writes this to `.claude/settings.local.json` (or `~/.claude/settings.json` with `--global`):
 
 ```json
 {

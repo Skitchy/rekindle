@@ -175,7 +175,7 @@ The PreCompact hook is a TypeScript CLI that reads Claude Code's hook input from
 }
 ```
 
-Configure via `npx rekindle setup-hooks` or `npx rekindle init --with-hooks`. The hook config is written to `.claude/settings.local.json` (user-specific, not committed).
+Configure via `npx rekindle setup-hooks` or `npx rekindle init --with-hooks`. The hook config is written to the project-local `.claude/settings.local.json` (user-specific, not committed), or with `--global` to the user-scope `~/.claude/settings.json`, which Claude Code applies in every project.
 
 ### Manual capture
 
@@ -207,6 +207,6 @@ It also prints boot instructions for CLAUDE.md and MCP server configuration for 
 
 **Two-layer capture over raw-only**: Raw captures are mechanically reliable. Structured snapshots are best-effort but save tokens at read time. Both are written; the model chooses the appropriate read mode.
 
-**Hook setup is opt-in**: `npx rekindle init` does not silently install hooks. Users must explicitly run `setup-hooks` or pass `--with-hooks`. Modifying `.claude/settings.local.json` is a deliberate action.
+**Hook setup is opt-in**: `npx rekindle init` does not silently install hooks. Users must explicitly run `setup-hooks` or pass `--with-hooks`. Modifying `.claude/settings.local.json` (or `~/.claude/settings.json` with `--global`) is a deliberate action.
 
 **stdio transport**: Standard MCP transport that works with Claude Code out of the box. No HTTP server to configure, no ports to open.

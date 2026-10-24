@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { resolveSettingsTarget, type HookScope } from "./settings-target.js";
 
 interface CommandHook {
   type: "command";
@@ -20,9 +20,8 @@ interface HooksConfig {
   [key: string]: unknown;
 }
 
-export function setupHooks(targetDir: string): void {
-  const claudeDir = join(targetDir, ".claude");
-  const settingsPath = join(claudeDir, "settings.local.json");
+export function setupHooks(targetDir: string, scope: HookScope = "project"): void {
+  const { claudeDir, settingsPath, displayPath } = resolveSettingsTarget(targetDir, scope);
 
   mkdirSync(claudeDir, { recursive: true });
 
@@ -71,5 +70,5 @@ export function setupHooks(targetDir: string): void {
   config.hooks.PreCompact = existing;
 
   writeFileSync(settingsPath, JSON.stringify(config, null, 2) + "\n");
-  console.log("Configured PreCompact hook in .claude/settings.local.json");
+  console.log(`Configured PreCompact hook in ${displayPath}`);
 }

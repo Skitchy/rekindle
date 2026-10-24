@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { resolveSettingsTarget, type HookScope } from "./settings-target.js";
 
 interface CommandHook {
   type: "command";
@@ -20,9 +20,8 @@ interface HooksConfig {
   [key: string]: unknown;
 }
 
-export function setupDelivery(targetDir: string): void {
-  const claudeDir = join(targetDir, ".claude");
-  const settingsPath = join(claudeDir, "settings.local.json");
+export function setupDelivery(targetDir: string, scope: HookScope = "project"): void {
+  const { claudeDir, settingsPath, displayPath } = resolveSettingsTarget(targetDir, scope);
 
   mkdirSync(claudeDir, { recursive: true });
 
@@ -65,5 +64,5 @@ export function setupDelivery(targetDir: string): void {
   config.hooks.SessionStart = existing;
 
   writeFileSync(settingsPath, JSON.stringify(config, null, 2) + "\n");
-  console.log("Configured SessionStart delivery hook in .claude/settings.local.json");
+  console.log(`Configured SessionStart delivery hook in ${displayPath}`);
 }
