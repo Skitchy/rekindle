@@ -2,56 +2,36 @@ import { join } from "node:path";
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 
-export function discoverLatestTranscript(): { sessionId: string; transcriptPath: string } | null {
-  const cwd = process.cwd();
-  const cwdKey = "-" + cwd.replace(/\//g, "-");
-  const projectDir = join(homedir(), ".claude", "projects", cwdKey);
+// Claude Code names a project's transcript folder after its working directory,
+// with every character that is not a letter or digit replaced by "-".
+// "/Users/me/Code_Projects/my.app" becomes "-Users-me-Code-Projects-my-app".
+export function claudeProjectKey(cwd: string): string {
+  return cwd.replace(/[^A-Za-z0-9]/g, "-");
+}
 
-  if (existsSync(projectDir)) {
-    const jsonls = readdirSync(projectDir)
-      .filter((f) => f.endsWith(".jsonl"))
-      .map((f) => ({
-        name: f,
-        path: join(projectDir, f),
-        mtime: statSync(join(projectDir, f)).mtimeMs,
-      }))
-      .sort((a, b) => b.mtime - a.mtime);
+// Returns the newest transcript in the current project's folder only.
+// It never looks in another project's folder: if this project has no
+// transcript, it returns null and the caller asks for an explicit path.
+export function discoverLatestTranscript(
+  cwd: string = process.cwd(),
+  home: string = homedir(),
+): { sessionId: string; transcriptPath: string } | null {
+  const projectDir = join(home, ".claude", "projects", claudeProjectKey(cwd));
+  if (!existsSync(projectDir)) return null;
 
-    if (jsonls.length > 0) {
-      return {
-        sessionId: jsonls[0].name.replace(".jsonl", ""),
-        transcriptPath: jsonls[0].path,
-      };
-    }
-  }
+  const jsonls = readdirSync(projectDir)
+    .filter((f) => f.endsWith(".jsonl"))
+    .map((f) => ({
+      name: f,
+      path: join(projectDir, f),
+      mtime: statSync(join(projectDir, f)).mtimeMs,
+    }))
+    .sort((a, b) => b.mtime - a.mtime);
 
-  const projectsDir = join(homedir(), ".claude", "projects");
-  if (existsSync(projectsDir)) {
-    let newest: { name: string; path: string; mtime: number } | null = null;
+  if (jsonls.length === 0) return null;
 
-    for (const dir of readdirSync(projectsDir)) {
-      const dirPath = join(projectsDir, dir);
-      try {
-        const files = readdirSync(dirPath).filter((f) => f.endsWith(".jsonl"));
-        for (const f of files) {
-          const fullPath = join(dirPath, f);
-          const mtime = statSync(fullPath).mtimeMs;
-          if (!newest || mtime > newest.mtime) {
-            newest = { name: f, path: fullPath, mtime };
-          }
-        }
-      } catch {
-        continue;
-      }
-    }
-
-    if (newest) {
-      return {
-        sessionId: newest.name.replace(".jsonl", ""),
-        transcriptPath: newest.path,
-      };
-    }
-  }
-
-  return null;
+  return {
+    sessionId: jsonls[0].name.replace(".jsonl", ""),
+    transcriptPath: jsonls[0].path,
+  };
 }
