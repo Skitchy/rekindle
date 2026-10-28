@@ -140,11 +140,14 @@ export function assertNoAliases(outputs: string[], protectedPaths: string[]): vo
  * rename. The temp is opened exclusively, and only a temp this call actually
  * created is ever removed, so a pre-existing file at the temp name survives.
  */
+export type WriteFn = (fd: number, buffer: Buffer, offset: number, length: number) => number;
+
 export function writeViaTemp(
   path: string,
   text: string,
   mode: number,
-  suffix: () => string = () => randomBytes(6).toString("hex")
+  suffix: () => string = () => randomBytes(6).toString("hex"),
+  write: WriteFn = (fd, buffer, offset, length) => writeSync(fd, buffer, offset, length)
 ): void {
   const tmp = join(dirname(path), `.${basename(path)}.${suffix()}.tmp`);
   let fd: number | null = null;
@@ -152,7 +155,16 @@ export function writeViaTemp(
   try {
     fd = openSync(tmp, "wx", mode);
     owned = true;
-    writeSync(fd, text);
+    // Write every byte. A write may be short (a file-size limit, a full disk);
+    // keep going from where it stopped, and treat a zero-byte write as failure,
+    // so an incomplete temp is never renamed into place.
+    const bytes = Buffer.from(text, "utf-8");
+    let offset = 0;
+    while (offset < bytes.length) {
+      const n = write(fd, bytes, offset, bytes.length - offset);
+      if (!(n > 0)) throw new Error(`write stalled after ${offset} of ${bytes.length} bytes`);
+      offset += n;
+    }
     closeSync(fd);
     fd = null;
     renameSync(tmp, path);

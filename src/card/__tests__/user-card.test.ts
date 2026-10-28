@@ -12,6 +12,7 @@ import {
   statSync,
   symlinkSync,
   writeFileSync,
+  writeSync,
 } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
@@ -520,5 +521,38 @@ describe("temp-file ownership (Ari's recheck, room 623)", () => {
     expect(() => writeViaTemp(target, "new", 0o600, () => "mine")).toThrow();
     expect(existsSync(join(home, ".a-dir.mine.tmp"))).toBe(false);
     expect(readFileSync(join(target, "keep"), "utf-8")).toBe("x");
+  });
+});
+
+describe("complete writes (Ari's commit review, room 628)", () => {
+  it("finishes the file across short writes", () => {
+    const target = join(home, "short.md");
+    writeFileSync(target, "original");
+    const text = "x".repeat(1000) + "end";
+    const threeAtATime = (fd: number, buf: Buffer, off: number, len: number) => writeSync(fd, buf, off, Math.min(3, len));
+    writeViaTemp(target, text, 0o600, undefined, threeAtATime);
+    expect(readFileSync(target, "utf-8")).toBe(text);
+  });
+
+  it("keeps the original and removes its temp when a write fails partway", () => {
+    const target = join(home, "partial.md");
+    writeFileSync(target, "original");
+    let calls = 0;
+    const failSecond = (fd: number, buf: Buffer, off: number, len: number) => {
+      calls += 1;
+      if (calls === 1) return writeSync(fd, buf, off, Math.min(10, len));
+      throw Object.assign(new Error("EFBIG: file too large"), { code: "EFBIG" });
+    };
+    expect(() => writeViaTemp(target, "y".repeat(100), 0o600, () => "partial", failSecond)).toThrow(/EFBIG/);
+    expect(readFileSync(target, "utf-8")).toBe("original");
+    expect(existsSync(join(home, ".partial.md.partial.tmp"))).toBe(false);
+  });
+
+  it("treats a zero-byte write as failure, never as done", () => {
+    const target = join(home, "stall.md");
+    writeFileSync(target, "original");
+    expect(() => writeViaTemp(target, "data", 0o600, () => "stall", () => 0)).toThrow(/write stalled after 0 of 4 bytes/);
+    expect(readFileSync(target, "utf-8")).toBe("original");
+    expect(existsSync(join(home, ".stall.md.stall.tmp"))).toBe(false);
   });
 });
