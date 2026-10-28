@@ -1,6 +1,7 @@
 import type { MemoryStats } from "../storage/sqlite.js";
 import type { ProjectResolution } from "../config/project-resolution.js";
 import type { TranscriptMode } from "../config/policy.js";
+import type { UserCardRead } from "../card/user-card.js";
 
 export interface OrientationConfig {
   identityPath: string;
@@ -11,6 +12,8 @@ export interface OrientationConfig {
   allowCheckpointLookup?: boolean;
   allowContextFallback?: boolean;
   scopeStatsToProject?: boolean;
+  /** The configured user card, already read. Absent means no card is configured. */
+  userCard?: UserCardRead;
 }
 
 export interface Gap {
@@ -44,4 +47,6 @@ export interface OrientationResult {
   scoreEarnedPoints: number;
   scorePossiblePoints: number;
   scoreBreakdown: ScoreItem[];
+  /** Present only when a user card is configured; carries no path. */
+  userCard?: UserCardRead;
 }

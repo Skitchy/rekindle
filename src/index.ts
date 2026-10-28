@@ -23,7 +23,7 @@ try {
 
 const captureManager = new CaptureManager(root.baseDir);
 
-startServer(storage, captureManager).catch((err) => {
+startServer(storage, captureManager, root.baseDir).catch((err) => {
   console.error("Failed to start Rekindle server:", err);
   process.exit(1);
 });

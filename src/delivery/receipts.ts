@@ -31,6 +31,15 @@ export interface DeliveryReceipt {
   bypassed: boolean;
   bypass_reason: string | null;
   error: string | null;
+  /**
+   * Present only when a user card is configured, so receipts for stores without
+   * one are unchanged. Says which setting won and what happened to the card;
+   * never the path or the text.
+   */
+  user_card?: {
+    source: "REKINDLE_USER_CARD" | "policy";
+    status: "included" | "dropped" | "empty" | "missing" | "unreadable";
+  };
 }
 
 export function writeReceipt(path: string, receipt: DeliveryReceipt): void {

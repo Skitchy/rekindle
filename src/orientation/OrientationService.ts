@@ -143,6 +143,7 @@ export class OrientationService {
       scoreEarnedPoints: earnedPoints,
       scorePossiblePoints: possiblePoints,
       scoreBreakdown: breakdown,
+      ...(config.userCard && config.userCard.source !== "unset" ? { userCard: config.userCard } : {}),
     };
   }
 }

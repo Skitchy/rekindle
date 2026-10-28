@@ -1,4 +1,5 @@
 import type { OrientationResult } from "./types.js";
+import { renderUserCardSection } from "../card/user-card.js";
 
 export class OrientationRenderer {
   /**
@@ -16,6 +17,12 @@ export class OrientationRenderer {
       );
     } else {
       sections.set("identity", `## Identity\nNot found at ${result.identity.path}`);
+    }
+
+    // Only a loaded card becomes a section. Missing, empty or unreadable cards are
+    // reported in receipts, never in the packet, so a card problem adds no bytes.
+    if (result.userCard?.status === "loaded" && result.userCard.content) {
+      sections.set("user", renderUserCardSection(result.userCard.content));
     }
 
     if (result.project) {
@@ -97,7 +104,12 @@ export class OrientationRenderer {
 
   static toMarkdown(result: OrientationResult): string {
     const sections = OrientationRenderer.toSections(result);
-    return ["identity", "project", "memories", "checkpoint", "transcript", "gaps", "score"]
+    // "user" is listed only when a card loaded, so output without a card is
+    // unchanged (including the empty slot an absent project section leaves).
+    const order = sections.has("user")
+      ? ["identity", "user", "project", "memories", "checkpoint", "transcript", "gaps", "score"]
+      : ["identity", "project", "memories", "checkpoint", "transcript", "gaps", "score"];
+    return order
       .map((name) => sections.get(name) as string)
       .join("\n\n---\n\n");
   }
