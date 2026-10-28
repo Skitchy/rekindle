@@ -32,6 +32,26 @@ if (command === "init") {
   if (withDelivery) {
     setupDelivery(targetDir, scope);
   }
+
+  const cardFlag = args.indexOf("--card");
+  if (cardFlag !== -1) {
+    const file = args[cardFlag + 1];
+    const { setCardPath } = await import("../card/path-config.js");
+    try {
+      if (file === undefined || file.startsWith("--")) throw new Error("--card needs a file name: rekindle init --card <file>");
+      const stored = setCardPath(targetDir, file);
+      console.log(`User card: this store loads ${stored} at startup.`);
+    } catch (err) {
+      console.error(`User card not set: ${err instanceof Error ? err.message : String(err)}`);
+      process.exitCode = 1;
+    }
+  } else {
+    console.log("Optional: give agents a user card. Start one with `rekindle card template <file>`,");
+    console.log("or draft one from what your agent already knows with `rekindle card compile --out <dir>`.");
+  }
+} else if (command === "card") {
+  const { runCardCommand } = await import("../card/cli.js");
+  process.exitCode = runCardCommand(args.slice(1));
 } else if (command === "setup-hooks") {
   setupHooks(targetDir, scope);
 } else if (command === "setup-delivery") {
@@ -66,6 +86,8 @@ if (command === "init") {
   console.log("                               Same, in Cursor's hook response shape (privacy-safe: stdin email/paths never persisted)");
   console.log("  rekindle precompact-capture  Capture context before compaction (hook)");
   console.log("  rekindle capture-now         Manually capture current session context");
+  console.log("  rekindle init --card <file>  Also load <file> as the user card at startup");
+  console.log("  rekindle card                User card commands: template, path, compile (see rekindle card help)");
   console.log("  rekindle                     Start MCP server (used by Claude Code)");
 } else {
   await import("../index.js");

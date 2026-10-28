@@ -12,6 +12,7 @@ import {
 import { writeReceipt, type DeliveryReceipt } from "./receipts.js";
 import { loadPolicy } from "../config/policy.js";
 import { resolveProject } from "../config/project-resolution.js";
+import { readUserCard, resolveUserCardPath, type UserCardRead } from "../card/user-card.js";
 
 export interface HookInput {
   session_id?: string;
@@ -42,6 +43,7 @@ const SECTION_PRIORITY = [
   "project",
   "checkpoint",
   "policy",
+  "user",
   "gaps",
   "score",
   "memories",
@@ -109,6 +111,7 @@ export function runSessionStart(
   let policy;
   let projectResolution;
   let sourceRecordIds: string[] = [];
+  let userCard: UserCardRead | undefined;
   try {
     policy = loadPolicy(root.baseDir);
     projectResolution = resolveProject(root.baseDir, input.cwd, env.REKINDLE_PROJECT);
@@ -118,6 +121,9 @@ export function runSessionStart(
     base.resolved_project = projectResolution.project;
     base.project_resolution = projectResolution.rule;
     base.project_override_registered = projectResolution.override_registered;
+    const cardPath = resolveUserCardPath(env, policy.policy.user_card_path, root.baseDir);
+    // Bounded by the budget: a card that can never fit is not read at all.
+    userCard = readUserCard(cardPath.path, cardPath.source, policy.policy.startup_budget_bytes);
     const storage = new RekindleStorage(root.dbPath);
     try {
       const orientation = new OrientationService(storage);
@@ -130,6 +136,7 @@ export function runSessionStart(
         allowCheckpointLookup: projectResolution.status === "resolved",
         allowContextFallback: false,
         scopeStatsToProject: true,
+        userCard,
       });
       if (result.checkpoint.id) sourceRecordIds.push(result.checkpoint.id);
       const byName = OrientationRenderer.toSections(result);
@@ -189,6 +196,17 @@ export function runSessionStart(
     bypass_reason: null,
     error: null,
   };
+  if (userCard && userCard.source !== "unset") {
+    const disposition = packet.sections.find((s) => s.name === "user")?.disposition;
+    receipt.user_card = {
+      source: userCard.source,
+      status: userCard.status === "loaded"
+        ? (disposition === "included" ? "included" : "dropped")
+        : userCard.status === "too_large"
+          ? "dropped"
+          : (userCard.status as "empty" | "missing" | "unreadable"),
+    };
+  }
   const stdout = JSON.stringify({
     hookSpecificOutput: {
       hookEventName: "SessionStart",

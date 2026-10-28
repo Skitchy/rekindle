@@ -696,6 +696,64 @@ export class RekindleStorage {
     }));
   }
 
+  /**
+   * Read-only source rows for `rekindle card compile`. Unlike list(), this has an
+   * explicit project contract (project IS NULL unless projects are named) and
+   * pages by (created_at, rowid) up to a hard cap, so no row is skipped or
+   * repeated and the caller learns when the cap was hit.
+   */
+  listCardSources(opts: {
+    includeProjectless: boolean;
+    projects: string[];
+    cap: number;
+    pageSize?: number;
+  }): { rows: Array<Pick<Memory, "id" | "content" | "category" | "type" | "project" | "created_at">>; capped: boolean } {
+    const pageSize = opts.pageSize ?? 500;
+    const scope: string[] = [];
+    const scopeParams: string[] = [];
+    if (opts.includeProjectless) scope.push("project IS NULL");
+    if (opts.projects.length > 0) {
+      scope.push(`project IN (${opts.projects.map(() => "?").join(", ")})`);
+      scopeParams.push(...opts.projects);
+    }
+    if (scope.length === 0) return { rows: [], capped: false };
+
+    const base =
+      `SELECT rowid AS rid, id, content, category, type, project, created_at FROM memories ` +
+      `WHERE (type IN ('preference', 'constraint') OR category = 'preference') AND (${scope.join(" OR ")})`;
+    const rows: Array<Pick<Memory, "id" | "content" | "category" | "type" | "project" | "created_at">> = [];
+    let cursor: { created_at: string; rid: number } | null = null;
+    for (;;) {
+      const remaining = opts.cap + 1 - rows.length;
+      if (remaining <= 0) break;
+      const limit = Math.min(pageSize, remaining);
+      const page = (cursor
+        ? this.db
+            .prepare(`${base} AND (created_at < ? OR (created_at = ? AND rowid < ?)) ORDER BY created_at DESC, rowid DESC LIMIT ?`)
+            .all(...scopeParams, cursor.created_at, cursor.created_at, cursor.rid, limit)
+        : this.db
+            .prepare(`${base} ORDER BY created_at DESC, rowid DESC LIMIT ?`)
+            .all(...scopeParams, limit)) as Array<{ rid: number } & Pick<Memory, "id" | "content" | "category" | "type" | "project" | "created_at">>;
+      if (page.length === 0) break;
+      for (const { rid: _rid, ...row } of page) rows.push(row);
+      const last = page[page.length - 1];
+      cursor = { created_at: last.created_at, rid: last.rid };
+      if (page.length < limit) break;
+    }
+    const capped = rows.length > opts.cap;
+    return { rows: capped ? rows.slice(0, opts.cap) : rows, capped };
+  }
+
+  /** Distinct project names that have card-source rows, for the "not included" list. */
+  cardSourceProjects(): string[] {
+    const rows = this.db
+      .prepare(
+        `SELECT DISTINCT project FROM memories WHERE project IS NOT NULL AND (type IN ('preference', 'constraint') OR category = 'preference') ORDER BY project`
+      )
+      .all() as Array<{ project: string }>;
+    return rows.map((r) => r.project);
+  }
+
   list(
     opts: { category?: string; project?: string; limit?: number } = {}
   ): Memory[] {

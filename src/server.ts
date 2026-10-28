@@ -15,7 +15,12 @@ import { registerReadCapture } from "./tools/read-capture.js";
 import { registerCaptureNow } from "./tools/capture-now.js";
 import { REKINDLE_VERSION } from "./version.js";
 
-export function createServer(storage: RekindleStorage, captureManager: CaptureManager): McpServer {
+export function createServer(
+  storage: RekindleStorage,
+  captureManager: CaptureManager,
+  baseDir?: string,
+  env: Record<string, string | undefined> = process.env
+): McpServer {
   const server = new McpServer(
     {
       name: "rekindle",
@@ -34,7 +39,7 @@ export function createServer(storage: RekindleStorage, captureManager: CaptureMa
   registerListMemories(server, storage);
   registerDeleteMemory(server, storage);
   registerUpdateMemory(server, storage);
-  registerBootReport(server, storage, captureManager);
+  registerBootReport(server, storage, captureManager, baseDir, env);
   registerEndSession(server, storage, captureManager);
   registerListCaptures(server, captureManager);
   registerReadCapture(server, captureManager);
@@ -43,8 +48,12 @@ export function createServer(storage: RekindleStorage, captureManager: CaptureMa
   return server;
 }
 
-export async function startServer(storage: RekindleStorage, captureManager: CaptureManager): Promise<void> {
-  const server = createServer(storage, captureManager);
+export async function startServer(
+  storage: RekindleStorage,
+  captureManager: CaptureManager,
+  baseDir?: string
+): Promise<void> {
+  const server = createServer(storage, captureManager, baseDir);
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }

@@ -4,11 +4,32 @@ import { RekindleStorage } from "../storage/sqlite.js";
 import { CaptureManager } from "../captures/index.js";
 import { OrientationService, OrientationRenderer } from "../orientation/index.js";
 import { withGuidance } from "../delivery/guidance.js";
+import { loadPolicy } from "../config/policy.js";
+import { readUserCard, resolveUserCardPath, type UserCardRead } from "../card/user-card.js";
+
+/**
+ * Read the configured card from the server's own store root. No tool parameter
+ * names the file, so a caller cannot pick which "card" gets loaded. An invalid
+ * policy only disables the policy path; the env var still applies.
+ */
+function loadConfiguredCard(baseDir: string | undefined, env: Record<string, string | undefined>): UserCardRead | undefined {
+  if (baseDir === undefined) return undefined;
+  let policyPath: string | undefined;
+  try {
+    policyPath = loadPolicy(baseDir).policy.user_card_path;
+  } catch {
+    policyPath = undefined;
+  }
+  const resolved = resolveUserCardPath(env, policyPath, baseDir);
+  return readUserCard(resolved.path, resolved.source);
+}
 
 export function registerBootReport(
   server: McpServer,
   storage: RekindleStorage,
-  captureManager: CaptureManager
+  captureManager: CaptureManager,
+  baseDir?: string,
+  env: Record<string, string | undefined> = process.env
 ): void {
   const orientationService = new OrientationService(storage);
 
@@ -37,6 +58,7 @@ export function registerBootReport(
         identityPath: identity_path,
         transcriptDir: transcript_dir,
         project,
+        userCard: loadConfiguredCard(baseDir, env),
       });
       let markdown = OrientationRenderer.toMarkdown(result);
 
