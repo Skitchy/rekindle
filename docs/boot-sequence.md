@@ -62,7 +62,7 @@ A transparent 100-point checklist:
 ```
 Orientation Health: 85/100
 
-+20  identity document loaded
++20  identity document filled in
 +20  recent checkpoint exists
 +20  transcript found
 +15  recent memories exist (14 in last 7 days)

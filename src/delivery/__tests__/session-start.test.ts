@@ -43,6 +43,15 @@ describe("runSessionStart", () => {
     expect(receipt.error).toBeNull();
   });
 
+  it("does not score an unfilled identity template, but still delivers it (#31)", () => {
+    const template = readFileSync(join(__dirname, "..", "..", "init", "templates", "identity.md"), "utf-8");
+    writeFileSync(join(home, ".rekindle", "identity.md"), template);
+    const packet = JSON.parse(runSessionStart({}, env()).stdout as string).hookSpecificOutput.additionalContext;
+    expect(packet).toContain("Fill in these sections");
+    expect(packet).toContain("identity_unfilled");
+    expect(packet).toContain(" ✗  Identity document filled in (20pts)");
+  });
+
   it("fails loud instead of partially emitting an oversized identity", () => {
     writeFileSync(
       join(home, ".rekindle", "identity.md"),
