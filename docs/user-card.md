@@ -25,7 +25,7 @@ cp ~/card-draft/card-draft.md ~/user-card.md
 
 What it selects:
 
-- **Preference and constraint records** with no project, plus, with `--include-project <name>`, preference and constraint records for that project. Nothing else from a project is read: no checkpoints and no other record types. All selected records are read newest first, up to 2,000 in total; the worksheet says so if the cap was hit.
+- **Records whose type is `preference` or `constraint`, or whose category is `preference`**, with no project, plus, with `--include-project <name>`, records for that project that match the same rule. That includes ordinary `store_memory` records filed under the `preference` category. Anything outside that rule is not read: an ordinary checkpoint (category `context`) is omitted, and so are other record types and categories. All selected records are read newest first, up to 2,000 in total; the worksheet says so if the cap was hit.
 - **The "What I Know About My Person" section of `identity.md`**, without its template comments.
 - **Files you pass with `--from <file.md>`**, for example reviewed notes from another agent. Their contents are copied into the draft verbatim, under their own heading.
 
