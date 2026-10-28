@@ -358,3 +358,26 @@ describe("displayRegistryPath", () => {
     expect(gap!.message).not.toContain(homedir());
   });
 });
+
+describe("unfilled identity template (#31)", () => {
+  it("treats the shipped template as no content, and real text as content", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const { identityHasContent } = await import("../identity-content.js");
+    const template = readFileSync(join(__dirname, "..", "..", "init", "templates", "identity.md"), "utf-8");
+    expect(identityHasContent(template)).toBe(false);
+    expect(identityHasContent(template + "\nI'm CC. Direct, no fluff.\n")).toBe(true);
+    expect(identityHasContent("# Just a heading\n<!-- a comment -->\n")).toBe(false);
+    // An unclosed comment is still a comment, through the end of the file.
+    expect(identityHasContent("<!-- TODO fill this in")).toBe(false);
+    expect(identityHasContent("# Identity\n<!-- TODO\nstill inside the comment\n")).toBe(false);
+    expect(identityHasContent("Real line.\n<!-- unfinished")).toBe(true);
+  });
+
+  it("scores 0 for identity and reports a gap when the identity is the template", () => {
+    const gaps = detectGaps(fullStats(), true, true, true, "captured", false);
+    expect(gaps.some((g) => g.code === "identity_unfilled")).toBe(true);
+    expect(gaps.some((g) => g.code === "identity_missing")).toBe(false);
+    expect(detectGaps(fullStats(), true, true, true).some((g) => g.code === "identity_unfilled")).toBe(false);
+  });
+});

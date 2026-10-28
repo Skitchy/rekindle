@@ -17,7 +17,7 @@ export function calculateScore(
 
   const breakdown = [
     {
-      label: "Identity document loaded",
+      label: "Identity document filled in",
       points: 20,
       earned: hasIdentity,
       applicable: true,

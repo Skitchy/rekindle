@@ -7,7 +7,8 @@ export function detectGaps(
   hasIdentity: boolean,
   hasTranscript: boolean,
   hasCheckpoint: boolean,
-  transcriptMode: TranscriptMode = "captured"
+  transcriptMode: TranscriptMode = "captured",
+  identityFilled: boolean = hasIdentity
 ): Gap[] {
   const gaps: Gap[] = [];
 
@@ -17,6 +18,13 @@ export function detectGaps(
       severity: "critical",
       message:
         "No identity document found. Run 'npx rekindle init' or create .rekindle/identity.md",
+    });
+  } else if (!identityFilled) {
+    gaps.push({
+      code: "identity_unfilled",
+      severity: "warning",
+      message:
+        "The identity document is still the unfilled template. Fill in .rekindle/identity.md so the agent knows who it is.",
     });
   }
 

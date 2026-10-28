@@ -5,6 +5,7 @@ import type { RekindleStorage } from "../storage/sqlite.js";
 import type { OrientationConfig, OrientationResult } from "./types.js";
 import { detectGaps } from "./GapDetector.js";
 import { calculateScore } from "./Scorer.js";
+import { identityHasContent } from "./identity-content.js";
 
 function findLatestTranscript(
   transcriptDir: string,
@@ -57,12 +58,16 @@ export class OrientationService {
 
   generate(config: OrientationConfig): OrientationResult {
     let identityLoaded = false;
+    let identityFilled = false;
     let identityContent: string | undefined;
 
     if (existsSync(config.identityPath)) {
       const raw = readFileSync(config.identityPath, "utf-8");
       identityLoaded = raw.trim().length > 0;
       if (identityLoaded) identityContent = raw;
+      // The text is still delivered either way; only the score and gaps need to
+      // know whether it says anything beyond the shipped template (#31).
+      identityFilled = identityLoaded && identityHasContent(raw);
     }
 
     const stats = config.scopeStatsToProject
@@ -82,7 +87,7 @@ export class OrientationService {
     const hasTranscript = transcript !== null;
     const hasCheckpoint = checkpoint !== null;
 
-    const gaps = detectGaps(stats, identityLoaded, hasTranscript, hasCheckpoint, transcriptMode);
+    const gaps = detectGaps(stats, identityLoaded, hasTranscript, hasCheckpoint, transcriptMode, identityFilled);
     if (config.projectResolution && config.projectResolution.status !== "resolved") {
       // Both remedies named, registry path kept relative: the packet must not leak
       // absolute paths, and the user needs to know which file to edit.
@@ -97,7 +102,7 @@ export class OrientationService {
       });
     }
     const { score, earnedPoints, possiblePoints, breakdown } = calculateScore(
-      identityLoaded,
+      identityFilled,
       hasCheckpoint,
       hasTranscript,
       stats,
