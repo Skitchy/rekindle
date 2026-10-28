@@ -23,7 +23,7 @@ npx rekindle init
 
 Rekindle is an MCP continuity engine that solves **session orientation**, not just storage. Orient at session start, capture at session end, survive mid-session compaction. All local, all SQLite, zero API keys.
 
-**v0.4.1** — `--global` hook setup now lands in `~/.claude/settings.json`, the file Claude Code applies in every project (fixes [#25](https://github.com/Skitchy/rekindle/issues/25)); init output matches this README. [Release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.4.1)
+**v0.5.0**: a **user card**, one Markdown file about you that any agent can read, so a new agent starts out knowing how you work. Plus fixes for transcript discovery, capture tagging and identity scoring. [Release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.5.0)
 
 ## Quick Start
 
@@ -214,6 +214,41 @@ All records stored with `type`, `source`, and `session_id` metadata. Next `boot_
 
 **Categories:** `preference` `lesson` `context` `relationship` `general`
 
+### Carry you between agents: the user card (v0.5)
+
+`identity.md` tells the agent who *it* is. The user card tells any agent who *you* are: how to talk to you, your boundaries, your projects, what to avoid. It's one plain Markdown file that you own and edit; agents suggest changes, you decide.
+
+Start one from the template:
+
+```bash
+npx rekindle card template ~/user-card.md     # never overwrites an existing file
+```
+
+Or draft one from what your agent already knows, review it, and save what you accept as your card:
+
+```bash
+mkdir -p ~/card-draft
+npx rekindle card compile --out ~/card-draft  # writes card-draft.md and card-worksheet.md
+cp ~/card-draft/card-draft.md ~/user-card.md  # after you've reviewed and edited the draft
+```
+
+Then point this store at it:
+
+```bash
+npx rekindle card path ~/user-card.md
+```
+
+`card path` only records where the card is. An agent receives the card through Rekindle's orientation output: the [SessionStart delivery hook](#claude-code-session-start-orientation-opt-in) (`npx rekindle setup-delivery`) in Claude Code, the [Cursor adapter](#cursor-session-start-orientation-opt-in), or a `boot_report` call from any other MCP client.
+
+- **Opt-in.** If no card is configured, the card feature adds nothing: no card section and no `user_card` receipt field.
+- **Whole or nothing.** With the default policy, the card is the first optional section after the required ones. If it doesn't fit the startup budget it's left out, never cut off partway.
+- **Diagnostics stay out of the packet.** What happened to the card (included, dropped, missing, unreadable, empty) is recorded in the receipt's `user_card` field, which holds only the source and status, never the card text or path.
+- **`compile` drafts, you decide.** It selects records whose type is preference or constraint, or whose category is preference (project-less by default, plus any projects you name, each project line dated), your identity file's "What I Know About My Person" section, and any reviewed files you pass with `--from`, which it copies verbatim. It reads at most 2,000 records, newest first. It never writes over your card. Its detection of conflicts, secrets and stale entries is incomplete, so the draft is a candidate list for you to review, not a cleaned card. [Details](https://github.com/Skitchy/rekindle/blob/main/docs/user-card.md#make-one).
+- **One card, many agents.** Point every store you use at the same file. Agents that can't read your machine (cloud agents) need their own copy; see [docs/user-card.md](https://github.com/Skitchy/rekindle/blob/main/docs/user-card.md).
+- **Trust limit.** Any agent with ordinary file access can edit the card file. Rekindle doesn't prevent that; keep the card somewhere you review.
+
+`REKINDLE_USER_CARD` overrides the configured path; a blank value counts as unset.
+
 ---
 
 ## Why not just CLAUDE.md?
@@ -231,6 +266,14 @@ A static file is passive. Your AI reads it, but it can't search it, rank it, tra
 ---
 
 ## Release Highlights
+
+**v0.5.0**
+
+- **User card** ([#32](https://github.com/Skitchy/rekindle/pull/32)): one Markdown file about the user that any agent can read. `rekindle card template`, `card path`, `card compile`, and `init --card`. Opt-in: if no card is configured, the card feature adds no packet section and no receipt field (the other changes below still apply). See [above](#carry-you-between-agents-the-user-card-v05)
+- **Transcript discovery stays in the current workspace** ([#29](https://github.com/Skitchy/rekindle/issues/29)): automatic discovery could return another project's transcript. It now matches Claude Code's folder naming and only accepts a transcript that records this workspace as its working directory
+- **`capture_now` keeps a transcript with its own session** ([#28](https://github.com/Skitchy/rekindle/issues/28)): with only `transcript_path`, the session id comes from the file name and discovery is skipped; with only `session_id`, a discovered transcript is used only if it belongs to that session; with both, both are used as given. A blank value counts as omitted, and a resulting id that is empty or hidden is refused
+- **Captures are tagged with the resolved project** ([#30](https://github.com/Skitchy/rekindle/issues/30)): captures use the same project resolution as session start. **Behavior change:** a capture made where no project resolves is now untagged (`project: null`, with a warning) instead of being labelled with the folder name
+- **An unfilled identity template no longer scores** ([#31](https://github.com/Skitchy/rekindle/issues/31)): the shipped template earns no identity points and shows an `identity_unfilled` warning; the text is still delivered. **Behavior change:** the score line now reads "Identity document filled in", and fresh installs score 20 points lower until `identity.md` is filled in
 
 **v0.4.1**
 
@@ -280,12 +323,16 @@ A static file is passive. Your AI reads it, but it can't search it, rank it, tra
 | `npx rekindle init --global` | Set up in home directory; hooks go to `~/.claude/settings.json` |
 | `npx rekindle init --with-hooks` | Init + configure PreCompact capture hook |
 | `npx rekindle init --with-delivery` | Init + configure SessionStart delivery hook |
+| `npx rekindle init --card <file>` | Init + load `<file>` as the user card at session start |
 | `npx rekindle setup-hooks` | Configure PreCompact capture hook (standalone) |
 | `npx rekindle setup-delivery` | Configure SessionStart delivery hook (standalone) |
 | `npx rekindle session-start` | Emit budgeted orientation packet (SessionStart hook) |
 | `npx rekindle session-start --client cursor` | Same, in Cursor's hook response shape |
 | `npx rekindle precompact-capture` | Capture context before compaction (hook) |
 | `npx rekindle capture-now` | Manually capture current session context |
+| `npx rekindle card template <file>` | Write a starter user card (never overwrites) |
+| `npx rekindle card path <file>` | Load `<file>` as the user card at session start (`--clear` to stop; no argument shows the current one) |
+| `npx rekindle card compile --out <dir>` | Draft a user card from what the store knows, plus a review worksheet (`--include-project <name>`, `--from <file.md>`) |
 | `npx rekindle` | Start MCP server (used by Claude Code) |
 
 ---
@@ -480,7 +527,7 @@ rekindle/
 npm test
 ```
 
-The suite runs in CI on Node 22, 24 and 26 and covers: storage CRUD + FTS5 ranking, orientation domain (gap detection, policy-aware scoring, project resolution, service, rendering), capture manager (parsing, limits, review tracking, formatting), delivery (atomic packet budget, receipts, guidance channels, Cursor privacy sentinels), hook setup for both hooks (schema, idempotency, corruption refusal), and MCP integration (all 10 tools plus package-derived server metadata).
+The suite runs in CI on Node 22, 24 and 26 and covers: storage CRUD + FTS5 ranking, orientation domain (gap detection, policy-aware scoring, project resolution, service, rendering), capture manager (parsing, limits, review tracking, formatting), delivery (atomic packet budget, receipts, guidance channels, Cursor privacy sentinels), the user card (path resolution, whole-or-nothing delivery, compile safeguards), hook setup for both hooks (schema, idempotency, corruption refusal), and MCP integration (all 10 tools plus package-derived server metadata).
 
 ## Roadmap
 
