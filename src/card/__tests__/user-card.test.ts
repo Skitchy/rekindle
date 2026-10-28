@@ -25,7 +25,7 @@ import { RekindleStorage } from "../../storage/sqlite.js";
 import { CaptureManager } from "../../captures/index.js";
 import { createServer } from "../../server.js";
 import { DEFAULT_POLICY, loadPolicy } from "../../config/policy.js";
-import { readUserCard, resolveUserCardPath } from "../user-card.js";
+import { readUserCard, renderUserCardSection, resolveUserCardPath } from "../user-card.js";
 import { runCardCommand } from "../cli.js";
 import { setCardPath } from "../path-config.js";
 import { compileCard, CompileRefusal, PartialWriteError, WORKSHEET_WARNING, writeViaTemp } from "../compile.js";
@@ -148,9 +148,11 @@ describe("card path resolution", () => {
     writePolicy({ ...DEFAULT_POLICY, user_card_path: "rel-card.md" });
     const a = runSessionStart({ cwd: tmpdir() }, env());
     const b = runSessionStart({ cwd: home }, env());
-    const cardOf = (p: string) => p.slice(p.indexOf("## User Card"), p.indexOf("\n\n---\n\n", p.indexOf("## User Card")));
-    expect(packetOf(a)).toContain("likes teal.");
-    expect(cardOf(packetOf(a))).toBe(cardOf(packetOf(b)));
+    // Compare the card section itself; the rest of the packet legitimately
+    // differs by cwd (the workspace and registry lines).
+    const section = renderUserCardSection(CARD);
+    expect(packetOf(a)).toContain(section);
+    expect(packetOf(b)).toContain(section);
     expect(a.receipt.user_card).toEqual({ source: "policy", status: "included" });
     expect(b.receipt.user_card).toEqual({ source: "policy", status: "included" });
   });
