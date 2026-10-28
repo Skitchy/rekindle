@@ -10,14 +10,38 @@ import type {
   HookInput,
 } from "./types.js";
 import { DEFAULT_CAPTURE_CONFIG } from "./types.js";
+import { resolveProject } from "../config/project-resolution.js";
 
 export class CaptureManager {
   private config: CaptureConfig;
   private baseDir: string;
 
-  constructor(baseDir: string, config?: Partial<CaptureConfig>) {
+  private env: Record<string, string | undefined>;
+
+  constructor(baseDir: string, config?: Partial<CaptureConfig>, env: Record<string, string | undefined> = process.env) {
     this.baseDir = baseDir;
     this.config = { ...DEFAULT_CAPTURE_CONFIG, ...config };
+    this.env = env;
+  }
+
+  /**
+   * Tag a capture with the same project the store resolves for this cwd
+   * (projects.json, or REKINDLE_PROJECT), so a project-scoped boot_report finds
+   * it. When attribution fails (unknown, ambiguous, unreadable registry) the
+   * capture is kept unscoped with a warning: a guessed name could match some
+   * other registered project and file the capture under it.
+   */
+  private projectFor(cwd: string): { project: string | null; warning: string | null } {
+    try {
+      const resolved = resolveProject(this.baseDir, cwd, this.env.REKINDLE_PROJECT);
+      if (resolved.status === "resolved" && resolved.project) return { project: resolved.project, warning: null };
+      return {
+        project: null,
+        warning: `Project not attributed (${resolved.status}); capture kept unscoped.`,
+      };
+    } catch {
+      return { project: null, warning: "Project registry could not be read; capture kept unscoped." };
+    }
   }
 
   private get capturesDir(): string {
@@ -105,11 +129,12 @@ export class CaptureManager {
 
     const charCount = rawContent.length;
 
+    const attribution = this.projectFor(input.cwd);
     const snapshot: StructuredSnapshot = {
       type: "precompact_capture",
       source,
       session_id: sessionId,
-      project: deriveProject(input.cwd),
+      project: attribution.project,
       captured_at: now,
       sequence,
       reason: reason ?? (source === "precompact_hook" ? "before_context_compaction" : "manual_capture"),
@@ -122,7 +147,7 @@ export class CaptureManager {
       decisions: [],
       open_loops: [],
       active_files: extractActiveFiles(tail),
-      warnings: [],
+      warnings: attribution.warning ? [attribution.warning] : [],
       context_shifts: "",
     };
 
@@ -282,12 +307,6 @@ function extractActiveFiles(entries: TranscriptEntry[]): string[] {
   }
 
   return [...files].slice(0, 20);
-}
-
-function deriveProject(cwd: string): string | null {
-  const parts = cwd.split("/");
-  const last = parts[parts.length - 1];
-  return last || null;
 }
 
 function formatTime(ts: string): string {

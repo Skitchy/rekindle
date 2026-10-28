@@ -201,7 +201,7 @@ describe("capture", () => {
     expect(entry!.source).toBe("model_requested");
   });
 
-  it("derives project from cwd", () => {
+  it("does not guess a project from the folder name when none resolves", () => {
     const path = writeTranscript([
       makeTranscriptLine("user", "Hello"),
       makeTranscriptLine("assistant", "Hi"),
@@ -210,7 +210,7 @@ describe("capture", () => {
     const input = makeInput(path);
     input.cwd = "/home/user/projects/my-project";
     const entry = manager.capture(input);
-    expect(entry!.project).toBe("my-project");
+    expect(entry!.project).toBeNull();
   });
 
   it("passes custom reason to snapshot", () => {
@@ -447,5 +447,73 @@ describe("raw capture formatting", () => {
     const raw = readFileSync(join(tmpDir, entry!.raw_path), "utf-8");
     expect(raw).toContain("Session: `test-session-abc123`");
     expect(raw).toContain("Exchanges: 2");
+  });
+});
+
+describe("capture project tagging (#30)", () => {
+  function captureFrom(cwd: string, env: Record<string, string | undefined> = {}) {
+    const path = writeTranscript([makeTranscriptLine("user", "Hello"), makeTranscriptLine("assistant", "Hi")]);
+    const input = makeInput(path);
+    input.cwd = cwd;
+    return new CaptureManager(tmpDir, undefined, env).capture(input);
+  }
+
+  it("uses the project projects.json resolves, not the folder name, when they differ", () => {
+    const work = join(tmpDir, "skitch");
+    mkdirSync(work);
+    mkdirSync(join(tmpDir, ".rekindle"), { recursive: true });
+    writeFileSync(
+      join(tmpDir, ".rekindle", "projects.json"),
+      JSON.stringify({ schema_version: 1, projects: [{ name: "claude-code", root: work }] })
+    );
+    expect(captureFrom(work)!.project).toBe("claude-code");
+  });
+
+  it("honors REKINDLE_PROJECT the way boot does", () => {
+    expect(captureFrom("/home/user/projects/my-project", { REKINDLE_PROJECT: "override" })!.project).toBe("override");
+  });
+
+  function registry(projects: Array<{ name: string; root: string; include_descendants?: boolean }>) {
+    mkdirSync(join(tmpDir, ".rekindle"), { recursive: true });
+    writeFileSync(join(tmpDir, ".rekindle", "projects.json"), JSON.stringify({ schema_version: 1, projects }));
+  }
+
+  function snapshotOf(entry: { json_path: string }) {
+    return JSON.parse(readFileSync(join(tmpDir, entry.json_path), "utf-8")) as { project: string | null; warnings: string[] };
+  }
+
+  it("keeps an ambiguous capture unscoped, with a warning, instead of guessing", () => {
+    const shared = join(tmpDir, "shared");
+    mkdirSync(shared);
+    registry([
+      { name: "one", root: shared },
+      { name: "two", root: shared },
+    ]);
+    const entry = captureFrom(shared)!;
+    expect(entry.project).toBeNull();
+    expect(snapshotOf(entry).warnings).toEqual(["Project not attributed (ambiguous); capture kept unscoped."]);
+  });
+
+  it("never files a capture under another project whose name matches the folder name", () => {
+    const elsewhere = join(tmpDir, "elsewhere");
+    mkdirSync(elsewhere);
+    registry([{ name: "my-project", root: elsewhere }]);
+    expect(captureFrom("/home/user/projects/my-project")!.project).toBeNull();
+  });
+
+  it("keeps the capture, unscoped, when the registry is unreadable or invalid", () => {
+    mkdirSync(join(tmpDir, ".rekindle"), { recursive: true });
+    for (const bad of ["{ broken", JSON.stringify({ schema_version: 2, projects: [] })]) {
+      writeFileSync(join(tmpDir, ".rekindle", "projects.json"), bad);
+      const entry = captureFrom("/home/user/projects/my-project")!;
+      expect(entry.project).toBeNull();
+      expect(snapshotOf(entry).warnings).toEqual(["Project registry could not be read; capture kept unscoped."]);
+    }
+  });
+
+  it("with no registry, captures are unscoped with an unknown-attribution warning", () => {
+    const entry = captureFrom("/home/user/projects/my-project")!;
+    expect(entry.project).toBeNull();
+    expect(snapshotOf(entry).warnings).toEqual(["Project not attributed (unknown); capture kept unscoped."]);
   });
 });
