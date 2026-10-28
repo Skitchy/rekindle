@@ -12,25 +12,36 @@ Start from the template:
 npx rekindle card template ~/user-card.md
 ```
 
-Or draft one from what your agent has already learned:
+Or draft one from what your agent has already learned, then review it and save the result as your card:
 
 ```bash
+mkdir -p ~/card-draft
 npx rekindle card compile --out ~/card-draft
+# review ~/card-draft/card-draft.md, edit it, then save what you accept:
+cp ~/card-draft/card-draft.md ~/user-card.md
 ```
 
-`compile` reads the store it runs against and writes two files:
+`compile` needs an existing output directory. It reads the store it runs against and writes two files there, `card-draft.md` (the candidate card) and `card-worksheet.md` (a review sheet). It never creates or changes your card itself.
 
-- `card-draft.md`: the candidate card.
-- `card-worksheet.md`: each candidate line with its source record, date and project, plus anything it flagged.
+What it selects:
 
-What it reads:
+- **Preference and constraint records** with no project, plus, with `--include-project <name>`, preference and constraint records for that project. Nothing else from a project is read: no checkpoints and no other record types. All selected records are read newest first, up to 2,000 in total; the worksheet says so if the cap was hit.
+- **The "What I Know About My Person" section of `identity.md`**, without its template comments.
+- **Files you pass with `--from <file.md>`**, for example reviewed notes from another agent. Their contents are copied into the draft verbatim, under their own heading.
 
-- preference and constraint records that have no project;
-- the "What I Know About My Person" section of `identity.md`;
-- records for projects you name with `--include-project <name>` (each line keeps its recorded date, under a "confirm each is still active" heading);
-- reviewed Markdown files you pass with `--from <file.md>`, for example notes from another agent.
+What it does to the selected records and identity lines:
 
-It is deterministic and runs no model. It collapses exact duplicates and marks entries older than 180 days. It does **not** detect contradictions, secrets or out-of-date facts reliably, so treat the draft as a list to review, not a finished card. It refuses to write over your configured card (or any alias of it), and it stops if `policy.json` can't be read, because then it can't tell which file is your card.
+- collapses exact duplicates (same text after whitespace normalization);
+- in the worksheet, marks dated records older than 180 days as possibly stale;
+- under "Current projects (confirm each is still active)", keeps each project record's recorded date.
+
+What it doesn't do:
+
+- **Imported files are not processed.** They aren't deduplicated or dated, and the worksheet lists each one as a single entry, not line by line.
+- **Identity lines and imports carry no date.**
+- **It doesn't reliably detect contradictions, secrets or out-of-date facts.** Treat the draft as a list to review, not a finished card.
+
+It refuses to write over your configured card (or any alias of it), and it stops if `policy.json` can't be read, because then it can't tell which file is your card.
 
 ## Load it at session start
 
@@ -40,14 +51,20 @@ npx rekindle card path ~/user-card.md
 
 This sets `user_card_path` in the store's `.rekindle/policy.json` and changes nothing else. `REKINDLE_USER_CARD` overrides it (a blank value counts as unset). Relative paths in `policy.json` resolve against the store root.
 
-At session start the card is the first optional section after the required ones (identity, project, checkpoint, policy):
+**Setting the path doesn't make any client read the card by itself.** The card is part of Rekindle's orientation output, so it reaches an agent the same way the rest of that output does:
 
-- It is delivered **whole or not at all**. A card too big for the startup budget is left out, never truncated.
+- **Claude Code:** install the SessionStart delivery hook with `npx rekindle setup-delivery` (see [Claude Code: session-start orientation](https://github.com/Skitchy/rekindle#claude-code-session-start-orientation-opt-in)). It is separate from the PreCompact capture hook; you don't need capture for the card.
+- **Cursor:** the session-start adapter, `session-start --client cursor` (see [Cursor: session-start orientation](https://github.com/Skitchy/rekindle#cursor-session-start-orientation-opt-in)).
+- **Any other MCP client:** the agent receives the card when it calls `boot_report`, or you arrange loading yourself.
+
+With the default policy, the card is the first optional section after the required ones (identity, project, checkpoint, policy). A custom `policy.json` can classify sections differently, and optional sections listed before `user` in the delivery order then come first.
+
+- The card is delivered **whole or not at all**. A card too big for the startup budget is left out, never truncated.
 - A missing, empty, unreadable or too-large card never breaks startup.
-- What happened to the card is recorded in the delivery receipt as `user_card` (`included`, `dropped`, `missing`, `unreadable` or `empty`), never in the packet. Receipts carry no card text and no path.
+- What happened to the card is recorded in the delivery receipt's `user_card` field (`included`, `dropped`, `missing`, `unreadable` or `empty`). That field contains only the source (env var or policy) and the status, never the card text or its path. Card diagnostics never appear in the packet.
 - `boot_report` shows the same card.
 
-With no card configured, the startup packet and receipt are exactly what they were before.
+If no card is configured, the card feature adds nothing: no card section in the packet and no `user_card` receipt field.
 
 ## One card, several agents
 
