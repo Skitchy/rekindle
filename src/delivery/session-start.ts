@@ -204,7 +204,7 @@ export function runSessionStart(
         ? (disposition === "included" ? "included" : "dropped")
         : userCard.status === "too_large"
           ? "dropped"
-          : (userCard.status as "empty" | "missing" | "unreadable"),
+          : (userCard.status as "empty" | "unfilled" | "missing" | "unreadable"),
     };
   }
   const stdout = JSON.stringify({

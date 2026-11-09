@@ -1,6 +1,7 @@
 import { closeSync, constants, fstatSync, openSync, readSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
+import { userCardHasContent } from "../orientation/identity-content.js";
 
 /**
  * Where a configured card came from, so a receipt can say which setting won.
@@ -9,7 +10,7 @@ import { isAbsolute, join, resolve } from "node:path";
 export type UserCardSource = "REKINDLE_USER_CARD" | "policy" | "unset";
 
 /** What happened to the card. Receipts carry this; packets never carry diagnostics. */
-export type UserCardStatus = "unset" | "loaded" | "empty" | "missing" | "unreadable" | "too_large";
+export type UserCardStatus = "unset" | "loaded" | "empty" | "unfilled" | "missing" | "unreadable" | "too_large";
 
 export interface UserCardRead {
   source: UserCardSource;
@@ -96,6 +97,7 @@ export function readUserCard(path: string | null, source: UserCardSource, maxByt
     }
     const raw = buffer.subarray(0, read).toString("utf-8");
     if (raw.trim().length === 0) return { source, status: "empty" };
+    if (!userCardHasContent(raw)) return { source, status: "unfilled" };
     return { source, status: "loaded", content: raw };
   } catch {
     return { source, status: "unreadable" };

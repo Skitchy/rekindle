@@ -26,6 +26,7 @@ import { CaptureManager } from "../../captures/index.js";
 import { createServer } from "../../server.js";
 import { DEFAULT_POLICY, loadPolicy } from "../../config/policy.js";
 import { readUserCard, renderUserCardSection, resolveUserCardPath } from "../user-card.js";
+import { vi } from "vitest";
 import { runCardCommand } from "../cli.js";
 import { setCardPath } from "../path-config.js";
 import { compileCard, CompileRefusal, PartialWriteError, WORKSHEET_WARNING, writeViaTemp } from "../compile.js";
@@ -556,5 +557,123 @@ describe("complete writes (Ari's commit review, room 628)", () => {
     expect(() => writeViaTemp(target, "data", 0o600, () => "stall", () => 0)).toThrow(/write stalled after 0 of 4 bytes/);
     expect(readFileSync(target, "utf-8")).toBe("original");
     expect(existsSync(join(home, ".stall.md.stall.tmp"))).toBe(false);
+  });
+});
+
+// Issue #38: a card still equal to the shipped template is left out, and the receipt says unfilled. Detection is
+// conservative: one authored line loads the whole card as written.
+describe("unfilled user card (#38)", () => {
+  const template = readFileSync(join(__dirname, "..", "..", "init", "templates", "user-card.md"), "utf-8");
+  const status = (text: string) => readUserCard(writeCard("c.md", text), "policy");
+
+  it("leaves an untouched template out of the session-start packet and reports unfilled, with no path or text", () => {
+    const card = writeCard("t.md", template);
+    const result = runSessionStart({}, env({ REKINDLE_USER_CARD: card }));
+    expect(result.receipt.user_card).toEqual({ source: "REKINDLE_USER_CARD", status: "unfilled" });
+    expect(result.receipt.error).toBeNull();
+    expect(packetOf(result)).not.toContain("## User Card");
+    expect(packetOf(result)).not.toContain("My user card");
+    const receipt = JSON.stringify(result.receipt);
+    expect(receipt).not.toContain(card);
+    expect(receipt).not.toContain("My user card");
+  });
+
+  it("boot_report leaves it out too", async () => {
+    const card = writeCard("t.md", template);
+    const storage = new RekindleStorage(join(home, ".rekindle", "db", "memories.db"));
+    const server = createServer(storage, new CaptureManager(home), home, { REKINDLE_USER_CARD: card });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "test-client", version: "1.0" });
+    await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
+    try {
+      const res = await client.callTool({ name: "boot_report", arguments: { identity_path: join(home, ".rekindle", "identity.md"), transcript_dir: join(home, "none") } });
+      const text = (res.content as Array<{ text: string }>)[0].text;
+      expect(text).not.toContain("## User Card");
+      expect(text).not.toContain("My user card");
+    } finally {
+      await client.close();
+      storage.close();
+    }
+  });
+
+  it.each([
+    ["the template with CRLF line endings", () => template.replace(/\n/g, "\r\n")],
+    ["the template with extra blank lines and trailing spaces", () => template.replace(/\n/g, "  \n\n")],
+    ["only single-line comments", () => "<!-- nothing yet -->\n\n<!-- still nothing -->\n"],
+    ["template headings with comments removed", () => template.replace(/<!--[\s\S]*?-->/g, "")],
+  ])("reports %s as unfilled", (_name, make) => {
+    expect(status(make())).toEqual({ source: "policy", status: "unfilled" });
+  });
+
+  it.each([
+    ["one added sentence", () => `${template}\nI prefer short answers.\n`],
+    ["one filled-in bullet", () => template.replace("## Core\n", "## Core\n\n- Never force-push.\n")],
+    ["a custom heading and nothing else authored", () => `${template}\n## Never touch the billing account\n`],
+    ["a renamed title", () => template.replace("# My user card", "# Dana's card")],
+    ["text beside a comment on one line", () => `${template}\nPrefers tea <!-- for now -->\n`],
+    ["text after an unclosed comment", () => `<!-- draft\nI prefer short answers.\n`],
+    ["a short card sharing no template lines", () => "Likes teal.\n"],
+    ["an unclosed comment before the template, whose own later close would swallow it", () => `<!-- draft\nI prefer short answers.\n\n${template}`],
+    ["an unclosed comment inside the template", () => template.replace("## Core\n", "<!-- notes\nNever force-push.\n## Core\n")],
+    ["a line that only starts like a comment", () => template.replace("## Core\n", "<!-- is how I mark drafts, never delete them.\n## Core\n")],
+    ["a multi-line comment holding a preference", () => `${template}\n<!--\nNever force-push.\n-->\n`],
+    ["the short form <!-->", () => `${template}\n<!-->\nI prefer tea.\n<!-- x -->\n`],
+    ["the short form <!--->", () => `${template}\n<!--->\nI prefer tea.\n<!-- x -->\n`],
+    ["the close form --!>", () => `${template}\n<!-- x --!>\nI prefer tea.\n<!-- y -->\n`],
+    ["text between two comments on one line", () => `${template}\n<!-- a --> Never force-push. <!-- b -->\n`],
+  ])("loads %s, whole and unchanged", (_name, make) => {
+    const text = make();
+    expect(status(text)).toEqual({ source: "policy", status: "loaded", content: text });
+  });
+
+  describe.each([
+    ["<!-->Never touch billing.<!-- -->"],
+    ["<!--->Never touch billing.<!-- -->"],
+    ["<!-- draft --!>Never touch billing.<!-- -->"],
+    ["<!-- a <!-- b -->"],
+  ])("a malformed or ambiguous comment line counts as authored: %s", (line) => {
+    it.each([["alone", () => `${line}\n`], ["with the template", () => `${template}\n${line}\n`]])("%s, loaded whole in both delivery paths", async (_where, make) => {
+      const text = make();
+      const card = writeCard("c.md", text);
+      expect(readUserCard(card, "policy")).toEqual({ source: "policy", status: "loaded", content: text });
+      const result = runSessionStart({}, env({ REKINDLE_USER_CARD: card }));
+      expect(result.receipt.user_card?.status).toBe("included");
+      expect(packetOf(result)).toContain(line);
+      const storage = new RekindleStorage(join(home, ".rekindle", "db", "memories.db"));
+      const server = createServer(storage, new CaptureManager(home), home, { REKINDLE_USER_CARD: card });
+      const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+      const client = new Client({ name: "test-client", version: "1.0" });
+      await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
+      try {
+        const res = await client.callTool({ name: "boot_report", arguments: { identity_path: join(home, ".rekindle", "identity.md"), transcript_dir: join(home, "none") } });
+        expect((res.content as Array<{ text: string }>)[0].text).toContain(line);
+      } finally {
+        await client.close();
+        storage.close();
+      }
+    });
+  });
+
+  it("stays fast on a large card of unclosed comment openers", () => {
+    const path = writeCard("c.md", "<!-- ".repeat(40_000));
+    const start = Date.now();
+    expect(readUserCard(path, "policy").status).toBe("loaded");
+    expect(Date.now() - start).toBeLessThan(500);
+  });
+
+  it("still reports a blank file as empty", () => {
+    expect(status("  \n\n").status).toBe("empty");
+  });
+
+  it.each([["card first", true], ["identity first", false]])("keeps the two templates apart whichever detector runs first (%s)", async (_name, cardFirst) => {
+    vi.resetModules();
+    const { identityHasContent, userCardHasContent } = await import("../../orientation/identity-content.js");
+    const identityTemplate = readFileSync(join(__dirname, "..", "..", "init", "templates", "identity.md"), "utf-8");
+    const cardOnly = "> Written about me, for any AI agent I work with. My edits win.";
+    const check = {
+      card: () => { expect(userCardHasContent(template)).toBe(false); expect(userCardHasContent(identityTemplate)).toBe(true); },
+      identity: () => { expect(identityHasContent(identityTemplate)).toBe(false); expect(identityHasContent(cardOnly)).toBe(true); },
+    };
+    if (cardFirst) { check.card(); check.identity(); } else { check.identity(); check.card(); }
   });
 });

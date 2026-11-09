@@ -61,7 +61,8 @@ With the default policy, the card is the first optional section after the requir
 
 - The card is delivered **whole or not at all**. A card too big for the startup budget is left out, never truncated.
 - A missing, empty, unreadable or too-large card never breaks startup.
-- What happened to the card is recorded in the delivery receipt's `user_card` field (`included`, `dropped`, `missing`, `unreadable` or `empty`). That field contains only the source (env var or policy) and the status, never the card text or its path. Card diagnostics never appear in the packet.
+- A card holding nothing but the template's own lines and single-line comments is left out of the packet and reported as `unfilled`. One line of your own, a heading included, and the whole card is delivered as written. Text in a single-line comment doesn't count as your own line.
+- What happened to the card is recorded in the delivery receipt's `user_card` field (`included`, `dropped`, `missing`, `unreadable`, `empty` or `unfilled`). That field contains only the source (env var or policy) and the status, never the card text or its path. Card diagnostics never appear in the packet.
 - `boot_report` shows the same card.
 
 If no card is configured, the card feature adds nothing: no card section in the packet and no `user_card` receipt field.

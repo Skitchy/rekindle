@@ -38,7 +38,7 @@ export interface DeliveryReceipt {
    */
   user_card?: {
     source: "REKINDLE_USER_CARD" | "policy";
-    status: "included" | "dropped" | "empty" | "missing" | "unreadable";
+    status: "included" | "dropped" | "empty" | "unfilled" | "missing" | "unreadable";
   };
 }
 
