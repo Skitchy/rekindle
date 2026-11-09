@@ -4,7 +4,7 @@ All notable changes to Rekindle are recorded here. The format follows [Keep a Ch
 
 ## [Unreleased]
 
-## [0.5.1] - TBD
+## [0.5.1] - 2026-11-09
 
 ### Fixed
 - A user card you never filled in is no longer delivered. It is left out of the session-start packet and `boot_report`, and the receipt reports `unfilled`. A line beyond the shipped template and plain one-line comments makes the card eligible for whole-card delivery; existing size and budget limits still apply. Text inside a plain one-line HTML comment (`<!-- like this -->`) does not count as filling in the card. Multi-line or ambiguous comment lines count as content. ([#38](https://github.com/Skitchy/rekindle/issues/38), [#41](https://github.com/Skitchy/rekindle/pull/41))

@@ -23,7 +23,7 @@ npx rekindle init
 
 Rekindle is an MCP continuity engine that solves **session orientation**, not just storage. Orient at session start, capture at session end, survive mid-session compaction. All local, all SQLite, zero API keys.
 
-**v0.5.0**: a **user card**, one Markdown file about you that any agent can read, so a new agent starts out knowing how you work. Plus fixes for transcript discovery, capture tagging and identity scoring. [Release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.5.0)
+**v0.5.1**: fixes for unfilled user cards and `init --global`, building on v0.5's portable user card. [Release notes](https://github.com/Skitchy/rekindle/releases/tag/v0.5.1).
 
 ## Quick Start
 
@@ -266,6 +266,11 @@ A static file is passive. Your AI reads it, but it can't search it, rank it, tra
 ---
 
 ## Release Highlights
+
+**v0.5.1**
+
+- **An unfilled user card is left out** ([#38](https://github.com/Skitchy/rekindle/issues/38)): a card holding only the shipped template and plain one-line comments is no longer delivered, and the receipt says `unfilled`.
+- **`init --global` leaves `~/.gitignore` alone** ([#26](https://github.com/Skitchy/rekindle/issues/26)): project init still adds `.rekindle/` to that project's `.gitignore`.
 
 **v0.5.0**
 
