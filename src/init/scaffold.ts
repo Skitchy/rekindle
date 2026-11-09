@@ -75,17 +75,19 @@ export function scaffold(targetDir: string, scope: HookScope = "project"): void 
     console.log(`Created continuity configuration: ${shown}/${name}`);
   }
 
-  // Add .rekindle/ to .gitignore
-  const gitignorePath = join(targetDir, ".gitignore");
-  if (existsSync(gitignorePath)) {
-    const existing = readFileSync(gitignorePath, "utf-8");
-    if (!existing.includes(".rekindle/")) {
-      appendFileSync(gitignorePath, "\n# Rekindle (local AI memory)\n.rekindle/\n");
-      console.log("Added .rekindle/ to .gitignore");
+  // Add .rekindle/ to .gitignore. Project scope only: a global init targets the home directory (#26).
+  if (scope !== "user") {
+    const gitignorePath = join(targetDir, ".gitignore");
+    if (existsSync(gitignorePath)) {
+      const existing = readFileSync(gitignorePath, "utf-8");
+      if (!existing.includes(".rekindle/")) {
+        appendFileSync(gitignorePath, "\n# Rekindle (local AI memory)\n.rekindle/\n");
+        console.log("Added .rekindle/ to .gitignore");
+      }
+    } else {
+      writeFileSync(gitignorePath, "# Rekindle (local AI memory)\n.rekindle/\n");
+      console.log("Created .gitignore with .rekindle/");
     }
-  } else {
-    writeFileSync(gitignorePath, "# Rekindle (local AI memory)\n.rekindle/\n");
-    console.log("Created .gitignore with .rekindle/");
   }
 
   // Print boot instructions

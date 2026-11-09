@@ -4,7 +4,7 @@
 // Runs the real CLI entry point with HOME pointed at a temp directory.
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync, existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -84,5 +84,34 @@ describe("rekindle CLI --global", () => {
     expect(out).toContain("Created identity template: .rekindle/identity.md");
     expect(out).toContain("npx rekindle setup-delivery\n");
     expect(out).toContain("Register the MCP server with Claude Code:");
+  });
+});
+
+// Issue #26: a global init targets the home directory, which is not a project, so it has no business in ~/.gitignore.
+describe("rekindle init and .gitignore", () => {
+  it("init --global creates no .gitignore in the home directory", () => {
+    const out = run("init", "--global");
+    expect(existsSync(join(home, ".rekindle", "identity.md"))).toBe(true);
+    expect(existsSync(join(home, ".gitignore"))).toBe(false);
+    expect(out).not.toContain(".gitignore");
+  });
+
+  it("init --global leaves an existing ~/.gitignore untouched", () => {
+    writeFileSync(join(home, ".gitignore"), "*.swp\n");
+    run("init", "--global");
+    expect(readFileSync(join(home, ".gitignore"), "utf-8")).toBe("*.swp\n");
+  });
+
+  it("project init still creates .gitignore with .rekindle/", () => {
+    run("init");
+    expect(readFileSync(join(home, ".gitignore"), "utf-8")).toContain(".rekindle/");
+  });
+
+  it("project init still appends to an existing .gitignore", () => {
+    writeFileSync(join(home, ".gitignore"), "*.swp\n");
+    run("init");
+    const text = readFileSync(join(home, ".gitignore"), "utf-8");
+    expect(text).toContain("*.swp");
+    expect(text).toContain(".rekindle/");
   });
 });

@@ -409,7 +409,7 @@ Rules 3 and 5 exist because some hosts (e.g. Claude Desktop) spawn MCP servers a
 - **Transcripts contain conversation text.** Do not enable transcript capture if your sessions contain secrets or credentials.
 - **Hook installation is opt-in.** Both the capture hook (`setup-hooks`) and the delivery hook (`setup-delivery`) must be requested explicitly, by command or by flag. Plain `init` never installs either.
 - **SQLite database is a regular file.** Not encrypted. Use OS-level disk encryption if needed.
-- **`.rekindle/` is gitignored.** The init command handles this automatically.
+- **Project-local `.rekindle/` is gitignored.** Project init adds it to that project's `.gitignore`; `init --global` leaves `~/.gitignore` unchanged.
 - **boot_report reads local files.** Paths are not sandboxed. Only use with MCP clients and prompts you trust.
 
 </details>
