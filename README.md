@@ -533,6 +533,10 @@ The suite runs in CI on Node 22, 24 and 26 and covers: storage CRUD + FTS5 ranki
 
 **Next: "It thinks in networks"** — Spreading activation, semantic search via embeddings, gap analysis tooling, eval harness.
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md), the [changelog](CHANGELOG.md) and the [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## License
 
 MIT

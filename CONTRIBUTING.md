@@ -30,9 +30,10 @@ npm run verify:package
 
 - Add or update tests for any behavior change. The suite is in `src/**/__tests__/`.
 - CI must be green on Node 22, 24 and 26, including the clean-install jobs, which install the packed tarball in containers with no compiler.
-- No personal data in tests, fixtures, docs or evidence: no real names, email addresses, user or workspace paths, transcripts, or other personal context. Synthetic or temporary paths in tests are fine.
+- No personal data in tests, fixtures, docs or evidence: no real names, email addresses, user or workspace paths, transcripts, or other personal context. The one deliberate exception is the enforcement contact in `CODE_OF_CONDUCT.md`. Synthetic or temporary paths in tests are fine.
+- Add a line under `## [Unreleased]` in [`CHANGELOG.md`](CHANGELOG.md) for any change a user would notice.
 - Keep the change narrow. One concern per pull request.
-- Please commit with a GitHub noreply address as the author email. This repository keeps personal addresses out of its history.
+- Please commit with a GitHub noreply address as the author email. This repository keeps personal addresses out of its commit author metadata.
 
 ## Reporting issues
 
@@ -41,6 +42,10 @@ Use the issue templates on GitHub:
 - **Bug Report** for something that does not work as documented.
 - **Continuity Failure Report** for a case where Rekindle failed to preserve context across sessions. These reports are research data for the project.
 - **Installation Help** for trouble installing or configuring Rekindle.
+
+## Code of conduct
+
+This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md).
 
 ## License
 
